@@ -9,7 +9,8 @@ from digital_twin import environment
 from digital_twin.environment import Environment
 from digital_twin.rover import Rover
 from digital_twin.threadproc import RoverCommandThread
-from digital_twin.rover_commands import create_rover_instructions_from_path
+from digital_twin.rover_commands import create_rover_instructions_from_path, \
+    save_rover_instructions_as_json
 from digital_twin.environment_interface import image_to_environment
 
 
@@ -35,6 +36,8 @@ def create_rover_cmds(current_env: Environment):
 
     for cmd_type, value, time in rover_cmds:
         rover_command.add_command(cmd_type, value, time)
+
+    save_rover_instructions_as_json(rover_cmds)
 
     return rover_cmds
 
