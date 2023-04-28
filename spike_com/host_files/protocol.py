@@ -230,7 +230,7 @@ class Directions(Packet):
             instruction_size, = struct.unpack("!B", payload[current_index:current_index+1])
             current_index += 1
             # Now read the actual instruction
-            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s", 
+            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s",
                 payload[current_index:current_index + instruction_size])
             current_index += instruction_size
             # Now get the code of this instruction

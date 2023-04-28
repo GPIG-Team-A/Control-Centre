@@ -37,17 +37,16 @@ class CommunicationHandler:
         """
         assert isinstance(packet, Packet)
 
-        self.lock.acquire()
-        payload = packet.pack()
-        payload = payload.replace(b"\x03", b"\x7e\x7e")
+        with self.lock:
+            payload = packet.pack()
+            payload = payload.replace(b"\x03", b"\x7e\x7e")
 
-        try:
-            self.socket.write(payload)
-        except BufferError as error:
-            print(f"Error occured whilst sending: {error}")
+            try:
+                self.socket.write(payload)
+            except BufferError as error:
+                print(f"Error occured whilst sending: {error}")
 
-        print(f"Sent {len(payload)} bytes of data")
-        self.lock.release()
+            print(f"Sent {len(payload)} bytes of data")
 
     def add_listener(self, packet_type, function):
         """
@@ -60,12 +59,11 @@ class CommunicationHandler:
         self.listeners[packet_type.CODE] = function
 
     def _recv_raw(self):
-        self.lock.acquire()
-        try:
-            raw = self.socket.read_until()
-        except TimeoutError:
-            raw = None
-        self.lock.release()
+        with self.lock:
+            try:
+                raw = self.socket.read_until()
+            except TimeoutError:
+                raw = None
         return raw
 
     def _recv_loop(self):
