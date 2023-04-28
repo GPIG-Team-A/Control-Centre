@@ -67,6 +67,6 @@ def get_rpm_for_still_rotation(angle: float, time: float) -> float:
 
     :param angle: The angle the rover wants to rotate
     :param time: The amount of time the rotation will occur
-    :return: The absolute RPMs needed for the rotation
+    :return: The absolute motor linear speeds need to rotate the angle
     """
-    return get_motor_rpm(angle * constants.DISTANCE_BETWEEN_MOTORS / (2 * time))
+    return angle * constants.DISTANCE_BETWEEN_MOTORS / (2 * time)

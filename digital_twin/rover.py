@@ -2,7 +2,6 @@
 The simulated rover class
 """
 
-
 from digital_twin import rover_rpm_instructions
 from digital_twin.constants import TIME_BETWEEN_MOVEMENTS
 from digital_twin.maths_helper import convert_angle_to_2d_vector
@@ -77,23 +76,7 @@ class Rover:
         angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed, motor2_speed)
         distance = (motor1_speed + motor2_speed) * time
 
-        self.rotate(angle_change)
-        self.move(distance)
-
-    def rotate(self, angle: float):
-        """
-        Rotates the rover by a certain angle
-
-        :param angle: The relative angle to rotate by, in radians
-        """
-        self._direction += angle
-
-    def move(self, distance: float):
-        """
-        Moves the rover the given distance
-
-        :param distance the rover will move
-        """
+        self._direction += angle_change
 
         # Gets the direction unit vector
         dx, dy = convert_angle_to_2d_vector(self._direction)
@@ -101,6 +84,26 @@ class Rover:
         # Applies the direction with the distance to change the location
         self._x += distance * dx
         self._y += distance * dy
+
+    def rotate(self, angle: float):
+        """
+        Rotates the rover by a certain angle
+
+        :param angle: The relative angle to rotate by, in radians
+        """
+        abs_motor_speeds = rover_rpm_instructions.get_rpm_for_still_rotation(angle, TIME_BETWEEN_MOVEMENTS)
+
+        self.motor_move(abs_motor_speeds, -abs_motor_speeds)
+
+    def move(self, distance: float):
+        """
+        Moves the rover the given distance
+
+        :param distance the rover will move
+        """
+        motor_speed = (distance / TIME_BETWEEN_MOVEMENTS) / 2
+
+        self.motor_move(motor_speed, motor_speed)
 
     def get_location(self) -> tuple[float]:
         """
