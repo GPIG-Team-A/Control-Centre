@@ -84,7 +84,7 @@ class RoverCommands:
         """
         val = value
 
-        if isinstance(value, tuple):
+        if not isinstance(value, tuple):
             val = value * constants.TIME_BETWEEN_MOVEMENTS / time
 
         self._command_queue.put((float(command_type.value), val, time))
@@ -160,7 +160,7 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
         elif command_type == RoverCommandType.ROTATE:
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
-        to_export.append({"type":named_type, "value":value})
+        to_export.append({"type": named_type, "value":value})
 
     with open("test.json", "w", encoding="UTF-8") as dump_file:
         json.dump(to_export, dump_file)
