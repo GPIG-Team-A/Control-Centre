@@ -8,7 +8,7 @@ from environment import Environment, EnvType, get_environment_type_from_value
 from constants import METERS_PER_TILE
 
 
-def image_to_environment(width: float, height: float, image_filename: str = "env.png")\
+def image_to_environment(width: float, height: float, image_filename: str = "resources/env.png")\
         -> Environment:
     """
     Contructs an Environment using an image

@@ -664,7 +664,7 @@ def update(display: pygame.surface, environment: Environment):
         adjusted_rover_x = rover_x + TILE_START_X - rover_diameter / 2
         adjusted_rover_y = rover_y + TILE_START_Y - rover_diameter / 2
 
-        rover_sprite = pygame.image.load("Rover.png")
+        rover_sprite = pygame.image.load("resources/Rover.png")
         rover_sprite = pygame.transform.rotozoom(rover_sprite, -rover.get_direction() * 360
                                                  / (2 * np.pi) - 90, rover_diameter / 16)
 
