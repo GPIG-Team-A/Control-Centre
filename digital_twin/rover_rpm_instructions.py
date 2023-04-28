@@ -2,7 +2,7 @@
 Handles the operations of the motor RPMs
 """
 
-from constants import DISTANCE_BETWEEN_MOTORS, TIME_BETWEEN_MOVEMENTS, WHEEL_CIRCUMFERENCE
+from digital_twin.constants import DISTANCE_BETWEEN_MOTORS, TIME_BETWEEN_MOVEMENTS, WHEEL_CIRCUMFERENCE
 
 
 def get_time_for_distance(distance: float, motor_speeds: float) -> float:

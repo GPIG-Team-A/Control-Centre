@@ -4,9 +4,9 @@ Thread that runs the actions of the commands sent to the digital rover
 
 import time
 from threading import Thread
-from rover_commands import RoverCommands
-from rover import Rover
-from constants import TIME_BETWEEN_MOVEMENTS
+from digital_twin.rover_commands import RoverCommands
+from digital_twin.rover import Rover
+from digital_twin.constants import TIME_BETWEEN_MOVEMENTS
 
 
 class RoverCommandThread(Thread):
