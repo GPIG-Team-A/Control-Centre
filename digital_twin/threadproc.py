@@ -24,19 +24,40 @@ class RoverCommandThread(Thread):
     _rover: Rover
         The rover being updated
 
+    _is_viewing_mode: bool
+        Whether a human is meant to view the commands
+
     """
     def __init__(self, rover: Rover):
         self._rover_commands: RoverCommands = RoverCommands()
         """ The command handler of the rover """
         self._rover = rover
         """ The rover being updated """
+        self._is_viewing_mode = True
+        """ Whether a human is meant to view the commands """
         Thread.__init__(self, daemon=True)
+
+    def set_viewing_mode(self, new_viewing_mode: bool):
+        """
+        Sets the viewing mode to the value given
+
+        :param new_viewing_mode:
+        """
+        self._is_viewing_mode = new_viewing_mode
+
+    def set_rover(self, rover: Rover):
+        """
+        The rover the thread is acting on
+        :param rover: The new rover
+        """
+        self._rover = rover
 
     def run(self) -> None:
         time.sleep(1)
         while True:
             # Updates the rover's commands
-            self._rover_commands.update(self._rover)
+            self._rover_commands.update(self._rover, self._is_viewing_mode)
+            # if self._is_viewing_mode:
             time.sleep(TIME_BETWEEN_MOVEMENTS)
 
     def get_rover_command(self) -> RoverCommands:
