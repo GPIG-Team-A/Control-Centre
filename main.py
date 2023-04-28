@@ -10,7 +10,7 @@ from digital_twin.environment import Environment
 from digital_twin.rover import Rover
 from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path, \
-    save_rover_instructions_as_json
+    save_rover_instructions_as_json, RoverCommandType
 from digital_twin.environment_interface import image_to_environment
 
 
@@ -52,6 +52,8 @@ def simulate_environment(cur_env: Environment):
 
     stdev = 0.8806615716635956 / 50.01724137931034
 
+    stdev *= 50
+
     cmd_thread = RoverCommandThread(None)
     cmd_thread.set_viewing_mode(False)
     cmd_thread.start()
@@ -72,10 +74,17 @@ def simulate_environment(cur_env: Environment):
         for cmd_type, value, time in rover_cmds:
             rover_command.add_command(cmd_type, value, time, False)
 
+        rover_command.add_command(RoverCommandType.SET_POSITION,
+                                  ((start_pos[0] + 0.5) * constants.METERS_PER_TILE,
+                                   (start_pos[1] + 0.5) * constants.METERS_PER_TILE),
+                                  0,
+                                  False)
+        rover_command.add_command(RoverCommandType.SET_ANGLE, (-numpy.pi / 2,), 0, False)
+
 
 if __name__ == '__main__':
     display = environment.setup_gui()
-    env = image_to_environment(2.5, 2.5, image_filename="resources/test_env.png")
+    env = image_to_environment(2.5, 2.5, image_filename="resources/env_1.png")
 
-    simulate_environment(env)
+    create_rover_cmds(env)
     environment.run(display, env)

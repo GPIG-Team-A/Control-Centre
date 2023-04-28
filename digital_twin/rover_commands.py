@@ -24,10 +24,20 @@ class RoverCommandType(Enum):
     """ Command for the rover to rotate a certain angle """
     RPMS = 2
     """ Command to run certain speeds on the motors for a certain time """
+    SET_POSITION = 3
+    """ Command to set the position of the rover """
+    SET_ANGLE = 4
+    """ 
+    Command to set the angle of the rover 
+    MUST BE SET AS SINGLE ELEMENT TUPLE
+    """
 
 
-ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE, RoverCommandType.ROTATE,
-                                       RoverCommandType.RPMS]
+ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE,
+                                       RoverCommandType.ROTATE,
+                                       RoverCommandType.RPMS,
+                                       RoverCommandType.SET_POSITION,
+                                       RoverCommandType.SET_ANGLE]
 
 
 class RoverCommands:
@@ -117,6 +127,10 @@ class RoverCommands:
             elif command_type == RoverCommandType.RPMS:
                 motor1_speed, motor2_speed = value
                 rover.motor_move(motor1_speed, motor2_speed)
+            elif command_type == RoverCommandType.SET_POSITION:
+                rover.set_position(value)
+            elif command_type == RoverCommandType.SET_ANGLE:
+                rover.set_angle(value[0])
 
             # Updates the time remaining of the current command
             self._current_command = (command_type.value, value, time_units_left -

@@ -57,8 +57,10 @@ class RoverCommandThread(Thread):
         while True:
             # Updates the rover's commands
             self._rover_commands.update(self._rover, self._is_viewing_mode)
-            # if self._is_viewing_mode:
-            time.sleep(TIME_BETWEEN_MOVEMENTS)
+            if self._is_viewing_mode:
+                time.sleep(TIME_BETWEEN_MOVEMENTS)
+            else:
+                time.sleep(0)
 
     def get_rover_command(self) -> RoverCommands:
         """

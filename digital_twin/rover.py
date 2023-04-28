@@ -67,6 +67,21 @@ class Rover:
 
         self.motor_stdev = motor_stdev
 
+    def set_position(self, position):
+        """
+        Sets the position of the rover
+        :param position: (x, y) coordinates
+        """
+        self._x, self._y = position
+
+    def set_angle(self, angle):
+        """
+        Sets the rotation angle of the rover
+
+        :param angle: The angle in radians
+        """
+        self._direction = angle
+
     def motor_move(self, motor1_speed: float, motor2_speed: float,
                    time: float = TIME_BETWEEN_MOVEMENTS):
         """
