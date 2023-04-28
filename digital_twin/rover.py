@@ -3,9 +3,9 @@ The simulated rover class
 """
 
 
-import rover_rpm_instructions
-from constants import TIME_BETWEEN_MOVEMENTS
-from maths_helper import convert_angle_to_2d_vector
+from digital_twin import rover_rpm_instructions
+from digital_twin.constants import TIME_BETWEEN_MOVEMENTS
+from digital_twin.maths_helper import convert_angle_to_2d_vector
 
 
 class Rover:

@@ -4,12 +4,12 @@ The main file for the decision centre (mainly for testing purposes)
 
 import numpy
 
-import constants
-import environment
-from rover import Rover
-from threadproc import RoverCommandThread
-from rover_commands import create_rover_instructions_from_path
-from environment_interface import image_to_environment
+from digital_twin import constants
+from digital_twin import environment
+from digital_twin.rover import Rover
+from digital_twin.threadproc import RoverCommandThread
+from digital_twin.rover_commands import create_rover_instructions_from_path
+from digital_twin.environment_interface import image_to_environment
 
 if __name__ == '__main__':
     display = environment.setup_gui()

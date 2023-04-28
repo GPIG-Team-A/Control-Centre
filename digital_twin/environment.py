@@ -8,8 +8,8 @@ import numpy as np
 import pygame
 from pygame.locals import QUIT
 
-from rover import Rover
-from constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
+from digital_twin.rover import Rover
+from digital_twin.constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
 
 SCREEN_WIDTH = 1000
 """ The width of the GUI in pixels"""

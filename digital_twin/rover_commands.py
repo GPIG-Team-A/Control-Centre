@@ -8,9 +8,9 @@ from queue import Queue
 
 import json
 import numpy as np
-import constants
-from rover import Rover
-from maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
+from digital_twin import constants
+from digital_twin.rover import Rover
+from digital_twin.maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
 
 
 class RoverCommandType(Enum):
