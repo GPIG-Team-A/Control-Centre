@@ -49,9 +49,9 @@ if __name__ == "__main__":
             sys.exit(-1)
         else:
             print("Finished.")
-        
+
         time.sleep(5)
-        
+
         print("Running host file...")
         try:
             sys.path.append("host_files/")
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     elif args.command == "debug":
         print("Running remote program on Spike with traceback...")
         try:
-            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "run", 
+            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "run",
                             "hub_files/main.py"], check=True)
         except subprocess.CalledProcessError as e:
             print("Error unable to bind: ", e)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
             print("Finished.")
     elif args.command == "update":
         # Send all hub files to the hub
-        python_files = [x for x in os.listdir("hub_files/") if 
+        python_files = [x for x in os.listdir("hub_files/") if
                         x.endswith(".py") and not x == "main.py"]
         # Create directory
         subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "mkdir",
@@ -94,7 +94,7 @@ if __name__ == "__main__":
             subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "rm",
                             f"{REMOTE_DIRECTORY}/{file}"], check=False)
             time.sleep(1)
-            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", 
+            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0",
                             "put", f"hub_files/{file}", f"{REMOTE_DIRECTORY}/{file}"], check=False)
             time.sleep(1)
         print("Update complete")

@@ -100,8 +100,8 @@ def get_from_json(file_name, verbose, handler):
                 }
     instructions = Directions()
     with open(file_name, encoding="utf-8") as file:
-        d = json.load(file)
-        for item in d:
+        data = json.load(file)
+        for item in data:
             if item["type"] in commands:
                 command = commands[item["type"]]
                 if command[1] == 1:
