@@ -7,8 +7,8 @@ from enum import Enum
 from queue import Queue
 
 import json
-import constants
 import numpy as np
+import constants
 from rover import Rover
 from maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
 
@@ -161,7 +161,9 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
         to_export.append({"type":named_type, "value":value})
-    json.dump(to_export, open("test.json", "w"))
+
+    with open("test.json", "w", encoding="UTF-8") as dump_file:
+        json.dump(to_export, dump_file)
 
 
 def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0)\
