@@ -1,6 +1,11 @@
+"""
+The simulated rover class
+"""
+
+
 import rover_rpm_instructions
-from CONSTANTS import DISTANCE_BETWEEN_MOTORS, TIME_BETWEEN_MOVEMENTS, METERS_PER_TILE
-from maths_helper import convert_angle_to_2D_vector
+from constants import TIME_BETWEEN_MOVEMENTS
+from maths_helper import convert_angle_to_2d_vector
 
 
 class Rover:
@@ -59,11 +64,18 @@ class Rover:
             This is the angle between the direction line and the x-axis
         """
 
-    def motor_move(self, motor1_speed: float, motor2_speed: float, time:float = TIME_BETWEEN_MOVEMENTS):
-        angle_change = rover_rpm_instructions.angleFromMotorSpeed(motor1_speed, motor2_speed)
-        distance = (motor1_speed + motor2_speed) * time
+    def motor_move(self, motor1_speed: float, motor2_speed: float,
+                   time: float = TIME_BETWEEN_MOVEMENTS):
+        """
+        Moves the rover according to its individual motor speeds
 
-        print(angle_change, distance)
+        :param motor1_speed: The linear speed of the first motor
+        :param motor2_speed: The linear speed of the second motor
+        :param time: The time the speeds are acting for
+        """
+
+        angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed, motor2_speed)
+        distance = (motor1_speed + motor2_speed) * time
 
         self.rotate(angle_change)
         self.move(distance)
@@ -84,26 +96,26 @@ class Rover:
         """
 
         # Gets the direction unit vector
-        dx, dy = convert_angle_to_2D_vector(self._direction)
+        dx, dy = convert_angle_to_2d_vector(self._direction)
 
         # Applies the direction with the distance to change the location
         self._x += distance * dx
         self._y += distance * dy
 
-    def getLocation(self) -> tuple[float]:
+    def get_location(self) -> tuple[float]:
         """
         :return: The rover's coordinates (x, y)
         """
         return self._x, self._y
 
-    def getDirection(self) -> float:
+    def get_direction(self) -> float:
         """
         :return: The angular direction of the rover in radians
         """
         return self._direction
 
-    def getDirectionVector(self) -> tuple[float]:
+    def get_direction_vector(self) -> tuple[float]:
         """
         :return: The direction of the rove as a 2D vector (dirX, dirY)
         """
-        return convert_angle_to_2D_vector(self._direction)
+        return convert_angle_to_2d_vector(self._direction)

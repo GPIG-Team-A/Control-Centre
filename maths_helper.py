@@ -1,7 +1,11 @@
+"""
+Helper file for maths functions
+"""
+
 import numpy as np
 
 
-def convert_angle_to_2D_vector(angle: float) -> tuple[float]:
+def convert_angle_to_2d_vector(angle: float) -> tuple[float]:
     """
     Converts an angle into a 2D vector (x, y)
 
@@ -21,16 +25,16 @@ def convert_angle_to_2D_vector(angle: float) -> tuple[float]:
     return x, y
 
 
-def get_angle_from_vectors(v1: tuple[float], v2: tuple[float]) -> float:
+def get_angle_from_vectors(vector_1: tuple[float], vector_2: tuple[float]) -> float:
     """
     Calculates the signed angle between the vectors given
 
-    :param v1: The starting direction vector
-    :param v2: The goal direction vector
+    :param vector_1: The starting direction vector
+    :param vector_2: The goal direction vector
     :return: The signed angular difference in radians
     """
-    y = v1[0] * v2[1] - v1[1] * v2[0]
-    x = v1[0] * v2[0] + v1[1] * v2[1]
+    y = vector_1[0] * vector_2[1] - vector_1[1] * vector_2[0]
+    x = vector_1[0] * vector_2[0] + vector_1[1] * vector_2[1]
 
     theta = -np.arctan2(y, x)
 

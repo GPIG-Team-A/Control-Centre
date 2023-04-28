@@ -1,11 +1,15 @@
+"""
+Handles the environment the rover will operate in
+"""
+
 import enum
 
 import numpy as np
 import pygame
-from pygame.locals import *
+from pygame.locals import QUIT
 
 from rover import Rover
-from CONSTANTS import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
+from constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
 
 SCREEN_WIDTH = 1000
 """ The width of the GUI in pixels"""
@@ -43,6 +47,10 @@ class EnvType(enum.Enum):
 
 
 def get_environment_type_from_value(value: tuple[int]) -> EnvType:
+    """
+    :param value: The value (colour) of the EnvType enum
+    :return: The environment type corresponding to the value given
+    """
     for env_type in EnvType:
         if env_type.value == value:
             return env_type
@@ -155,17 +163,17 @@ class Environment:
         """
         return self._rover
 
-    def set_tile(self, x: int, y: int, eType: EnvType):
+    def set_tile(self, x: int, y: int, env_type: EnvType):
         """
         Sets the type of the tile within the environment at the coordinates given
 
         :param x: The x coordinate of the tile
         :param y: The y coordinate of the tile
-        :param eType: The environment type the tile should be
+        :param env_type: The environment type the tile should be
         """
-        self._map[y][x] = eType
+        self._map[y][x] = env_type
 
-    def get_tile(self, x, y):
+    def get_tile(self, x: int, y: int):
         """
         Gets the type of the tile at the coordinates given
 
@@ -182,6 +190,10 @@ class Environment:
         return len(self._map[0]), len(self._map)
 
     def get_start_end(self) -> tuple[tuple[int], tuple[int]]:
+        """
+        :return: The start and end coordinates of course in the format
+                 (startX, startY), (endX, endY)
+        """
         return self._start, self._end
 
     def randomly_assign_obstacles(self, perc: float = 0.2):
@@ -223,79 +235,102 @@ class Environment:
         return self._path
 
 
-def _cost(g: list[list[float]], n1: tuple[int], n2: tuple[int]) -> float:
+def _cost(traversal_costs: list[list[float]], point_1: tuple[int], point_2: tuple[int]) \
+        -> float:
     """
     Gets the traversal cost between 2 nodes
 
-    :param g: The traversal cost between all nodes and the starting node
-    :param n1: The current node
-    :param n2: The node being traversed to from n1
+    :param traversal_costs: The traversal cost between all nodes and the starting node
+    :param point_1: The current node
+    :param point_2: The node being traversed to from n1
     :return: The cost of the traversal from n1 to n2
     """
     # The traversal cost between the starting node and n1
-    g_val = g[n1[1]][n1[0]]
+    g_val = traversal_costs[point_1[1]][point_1[0]]
 
-    dx = n2[0] - n1[0]
-    dy = n2[1] - n1[1]
+    dx = point_2[0] - point_1[0]
+    dy = point_2[1] - point_1[1]
 
-    # Distance heuristic
-    h = np.sqrt(dx * dx + dy * dy)
+    distance_heuristic = np.sqrt(dx * dx + dy * dy)
 
     # Angular heuristic
     ang = np.abs(np.arctan(dy / dx)) if dx != 0 else np.pi / 2
 
-    return g_val + ang + h
+    return g_val + ang + distance_heuristic
 
 
-def _poll(OPEN: list[tuple[int]], g: list[list[float]], end_pos: tuple[int]) -> tuple[int]:
+def _poll(open_nodes_queue: list[tuple[int]], traversal_costs: list[list[float]],
+          end_pos: tuple[int]) -> tuple[int]:
     """
     Polls a node from the queue given the lowest cost to the goal node
 
-    :param OPEN: The open nodes being explored
-    :param g: The traversal cost between all nodes and the starting node
+    :param open_nodes_queue: The open nodes being explored
+    :param traversal_costs: The traversal cost between all nodes and the starting node
     :param end_pos: The goal node of the search algorithm
     :return: The next node to be explored
     """
     min_cst = float("inf")
     out_pos = None
 
-    for pos in OPEN:
-        cst = _cost(g, pos, end_pos)
+    for pos in open_nodes_queue:
+        cst = _cost(traversal_costs, pos, end_pos)
 
         if cst < min_cst:
             min_cst = cst
             out_pos = pos
 
-    OPEN.remove(out_pos)
+    open_nodes_queue.remove(out_pos)
 
     return out_pos
 
 
-def f_x(p1, p2, y):
-    m = (p2[0] - p1[0]) / (p2[1] - p1[1])
+def f_x(point_1, point_2, y):
+    """
+    :param point_1: (x, y) coordinate
+    :param point_2: (x, y) coordinate
+    :param y: y coordinate that lies on the line between points 1 and 2
+    :return: Given a line between points 1 and 2, returns the x coordinate corresponding
+             to the y on the given line
+    """
+    gradient = (point_2[0] - point_1[0]) / (point_2[1] - point_1[1])
 
-    return m * (y - p1[1]) + p1[0]
-
-
-def f_y(p1, p2, x):
-    m = (p2[1] - p1[1]) / (p2[0] - p1[0])
-
-    return m * (x - p1[0]) + p1[1]
-
-
-def get_intersected_coordinates(p1: tuple[float], p2: tuple[float]) -> list[tuple[int]]:
-    x_min = int(np.floor(np.min([p1[0], p2[0]])))
-    x_max = int(np.floor(np.max([p1[0], p2[0]])))
-
-    y_min = int(np.floor(np.min([p1[1], p2[1]])))
-    y_max = int(np.floor(np.max([p1[1], p2[1]])))
-
-    return [(x, int(f_y(p1, p2, x))) for x in range(x_min, x_max)] \
-           + [(int(f_x(p1, p2, y)), y) for y in range(y_min, y_max)]
+    return gradient * (y - point_1[1]) + point_1[0]
 
 
-def _is_line_of_sight(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
-    dir_vector = [n2[0] - n1[0], n2[1] - n1[1]]
+def f_y(point_1, point_2, x):
+    """
+    :param point_1: (x, y) coordinate
+    :param point_2: (x, y) coordinate
+    :param x: x coordinate that lies on the line between points 1 and 2
+    :return: Given a line between points 1 and 2, returns the y coordinate corresponding
+             to the x on the given line
+    """
+    gradient = (point_2[1] - point_1[1]) / (point_2[0] - point_1[0])
+
+    return gradient * (x - point_1[0]) + point_1[1]
+
+
+def get_intersected_coordinates(point_1: tuple[float], point_2: tuple[float]) \
+        -> list[tuple[int]]:
+    """
+    :param point_1: (x, y) coordinate
+    :param point_2: (x, y) coordinate
+    :return: The coordinates of the tiles that intersect between the line between point_1 and
+             point_2
+    """
+
+    x_min = int(np.floor(np.min([point_1[0], point_2[0]])))
+    x_max = int(np.floor(np.max([point_1[0], point_2[0]])))
+
+    y_min = int(np.floor(np.min([point_1[1], point_2[1]])))
+    y_max = int(np.floor(np.max([point_1[1], point_2[1]])))
+
+    return [(x, int(f_y(point_1, point_2, x))) for x in range(x_min, x_max)] \
+           + [(int(f_x(point_1, point_2, y)), y) for y in range(y_min, y_max)]
+
+
+def _is_line_of_sight(env: Environment, point_1: tuple[int], point_2: tuple[int]) -> bool:
+    dir_vector = [point_2[0] - point_1[0], point_2[1] - point_1[1]]
     magnitude = np.sqrt(dir_vector[0] * dir_vector[0] + dir_vector[1] * dir_vector[1])
 
     dir_vector[0] = dir_vector[0] / magnitude
@@ -307,20 +342,20 @@ def _is_line_of_sight(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
 
     rays_cast = 3
 
-    startPoint = [n1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                  n1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+    start_point = [point_1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
+                   point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
-    endPoint = [n2[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                n2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+    end_point = [point_2[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
+                 point_2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
-    for n in range(rays_cast):
-        p1 = (startPoint[0] + n * (dist / (rays_cast - 1)) * perpendicular_vector[0],
-              startPoint[1] + n * (dist / (rays_cast - 1)) * perpendicular_vector[1])
+    for ray in range(rays_cast):
+        start_point = (start_point[0] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[0],
+                       start_point[1] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[1])
 
-        p2 = (endPoint[0] + n * (dist / (rays_cast - 1)) * perpendicular_vector[0],
-              endPoint[1] + n * (dist / (rays_cast - 1)) * perpendicular_vector[1])
+        end_point = (end_point[0] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[0],
+                     end_point[1] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[1])
 
-        for x, y in get_intersected_coordinates(p1, p2):
+        for x, y in get_intersected_coordinates(start_point, end_point):
             try:
                 if env.get_tile(x, y) == EnvType.OBSTACLE:
                     return False
@@ -330,18 +365,18 @@ def _is_line_of_sight(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
     return True
 
 
-def _is_line_of_sight_legacy(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
+def _is_line_of_sight_legacy(env: Environment, point_1: tuple[int], point_2: tuple[int]) -> bool:
     """
     Checks whether 2 nodes can traverse to each other without encountering an obstacle
 
     :param env: The environment being traversed
-    :param n1: Node 1
-    :param n2: Node 2
+    :param point_1: Node 1
+    :param point_2: Node 2
     :return: True if there is a line of sight between the nodes, False otherwise
     """
 
     # Simple ray tracing
-    dir_vector = [n2[0] - n1[0], n2[1] - n1[1]]
+    dir_vector = [point_2[0] - point_1[0], point_2[1] - point_1[1]]
     scale_factor = np.sqrt(dir_vector[0] * dir_vector[0] + dir_vector[1] * dir_vector[1]) * 100
 
     dir_vector[0] = dir_vector[0] / scale_factor
@@ -373,63 +408,63 @@ def _is_line_of_sight_legacy(env: Environment, n1: tuple[int], n2: tuple[int]) -
     #     ,     /            , '
     #       ' -X, _ _ _ ,  '
 
-    startPoint = [n1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                  n1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+    start_point = [point_1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
+                  point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
     # Sends rays that checks if any of the nodes between the two nodes given are obstacles
-    for n in range(rays_cast):
-        for i in range(int(scale_factor)):
-            pointX = startPoint[0] + n * (dist / (rays_cast - 1)) * perpendicular_vector[0]
+    for ray in range(rays_cast):
+        for scale_val in range(int(scale_factor)):
+            point_x = start_point[0] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[0]
 
-            pointY = startPoint[1] + n * (dist / (rays_cast - 1)) * perpendicular_vector[1]
+            point_y = start_point[1] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[1]
 
-            posX = pointX + dir_vector[0] * i
-            posY = pointY + dir_vector[1] * i
+            pos_x = point_x + dir_vector[0] * scale_val
+            pos_y = point_y + dir_vector[1] * scale_val
 
             try:
-                if env.get_tile(int(posX), int(posY)) == EnvType.OBSTACLE:
+                if env.get_tile(int(pos_x), int(pos_y)) == EnvType.OBSTACLE:
                     return False
-            except:
+            except IndexError:
                 pass
     return True
 
 
-def _update_vertex(env: Environment, OPEN: list[tuple[int]], g: list[list[float]],
-                   parent: list[list[tuple[int]]], n1: tuple[int], n2: tuple[int]):
+def _update_vertex(env: Environment, open_nodes_queue: list[tuple[int]],
+                   traversal_costs: list[list[float]], parent: list[list[tuple[int]]],
+                   point_1: tuple[int], point_2: tuple[int]):
     """
     Updates the node's traversal cost and parent node
 
     :param env: The environment being traversed
-    :param OPEN: The open list of nodes being explored
-    :param g: The traversal cost between all nodes and the starting node
+    :param open_nodes_queue: The open list of nodes being explored
+    :param traversal_costs: The traversal cost between all nodes and the starting node
     :param parent: The parent matrix of every node
-    :param n1: Node 1
-    :param n2: Node 2
+    :param point_1: Node 1
+    :param point_2: Node 2
     """
     # Gets the parent of node 1
-    n_parent = parent[n1[1]][n1[0]]
+    n_parent = parent[point_1[1]][point_1[0]]
 
-    if _is_line_of_sight(env, n1, n2):
-        if _is_line_of_sight(env, n_parent, n2):
+    if _is_line_of_sight(env, point_1, point_2):
+        if _is_line_of_sight(env, n_parent, point_2):
             # If there's a line of sight between n1's parent and n2
 
             # If the cost of the traversal from n1's parent and n2 is smaller
             # than n2's current traversal cost then n2's parent is set to n1's parent
-            if _cost(g, n_parent, n2) < g[n2[1]][n2[0]]:
-                g[n2[1]][n2[0]] = _cost(g, n_parent, n2)
-                parent[n2[1]][n2[0]] = n_parent
+            if _cost(traversal_costs, n_parent, point_2) < traversal_costs[point_2[1]][point_2[0]]:
+                traversal_costs[point_2[1]][point_2[0]] = _cost(traversal_costs, n_parent, point_2)
+                parent[point_2[1]][point_2[0]] = n_parent
 
-                if n2 not in OPEN:
-                    OPEN.append(n2)
-        else:
-            # If the cost of the traversal from n1 to n2 is smaller than n2's
-            # current traversal cost then n2's parent is set to n1
-            if _cost(g, n1, n2) < g[n2[1]][n2[0]]:
-                g[n2[1]][n2[0]] = _cost(g, n1, n2)
-                parent[n2[1]][n2[0]] = n1
+                if point_2 not in open_nodes_queue:
+                    open_nodes_queue.append(point_2)
+        # If the cost of the traversal from n1 to n2 is smaller than n2's
+        # current traversal cost then n2's parent is set to n1
+        elif _cost(traversal_costs, point_1, point_2) < traversal_costs[point_2[1]][point_2[0]]:
+            traversal_costs[point_2[1]][point_2[0]] = _cost(traversal_costs, point_1, point_2)
+            parent[point_2[1]][point_2[0]] = point_1
 
-                if n2 not in OPEN:
-                    OPEN.append(n2)
+            if point_2 not in open_nodes_queue:
+                open_nodes_queue.append(point_2)
 
 
 def _get_neighbours(env: Environment, node: tuple[int]) -> list[tuple[int]]:
@@ -453,20 +488,20 @@ def _get_neighbours(env: Environment, node: tuple[int]) -> list[tuple[int]]:
     neighbours = []
 
     for dx, dy in adj:
-        newX = x + dx
-        newY = y + dy
+        new_x = x + dx
+        new_y = y + dy
 
         # Ensures the neighbour is in the map
-        if newX < 0 or newX >= env.size()[0]:
+        if new_x < 0 or new_x >= env.size()[0]:
             continue
-        if newY < 0 or newY >= env.size()[1]:
+        if new_y < 0 or new_y >= env.size()[1]:
             continue
 
         # Ensures the neighbour isn't an obstacle
-        if env.get_tile(newX, newY) == EnvType.OBSTACLE:
+        if env.get_tile(new_x, new_y) == EnvType.OBSTACLE:
             continue
 
-        neighbours.append((newX, newY))
+        neighbours.append((new_x, new_y))
 
     return neighbours
 
@@ -484,19 +519,20 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
 
     env_width, env_height = environment.size()
 
-    g: list[list[float]] = [[float("inf") for _ in range(env_width)] for _ in range(env_height)]
+    traversal_costs: list[list[float]] = [[float("inf") for _ in range(env_width)]
+                                          for _ in range(env_height)]
     parent: list[list[tuple[float]]] = [[None for _ in range(env_width)] for _ in range(env_height)]
 
-    g[start[1]][start[0]] = 0
+    traversal_costs[start[1]][start[0]] = 0
     parent[start[1]][start[0]] = start
 
-    OPEN: list[tuple[int]] = []
-    CLOSED: list[tuple[int]] = []
+    open_nodes_queue: list[tuple[int]] = []
+    close_nodes_list: list[tuple[int]] = []
 
-    OPEN.append(start)
+    open_nodes_queue.append(start)
 
-    while len(OPEN) > 0:
-        node = _poll(OPEN, g, end)
+    while len(open_nodes_queue) > 0:
+        node = _poll(open_nodes_queue, traversal_costs, end)
 
         if node is None:
             continue
@@ -510,31 +546,32 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
         # DEBUGGING ONLY
         # environment.set_tile(node[0], node[1], EnvType.EXPLORED)
 
-        CLOSED.append(node)
+        close_nodes_list.append(node)
 
         neighbours = _get_neighbours(environment, node)
 
-        for n in neighbours:
-            if n not in CLOSED:
-                _update_vertex(environment, OPEN, g, parent, node, n)
+        for neighbour in neighbours:
+            if neighbour not in close_nodes_list:
+                _update_vertex(environment, open_nodes_queue, traversal_costs,
+                               parent, node, neighbour)
 
-    revPath = []
+    reverse_path = []
 
     node = end
-    revPath.append(node)
+    reverse_path.append(node)
 
     while node != start:
         node = parent[node[1]][node[0]]
-        revPath.append(node)
+        reverse_path.append(node)
 
-    path = [revPath[x] for x in range(len(revPath) - 1, -1, -1)]
+    path = [reverse_path[x] for x in range(len(reverse_path) - 1, -1, -1)]
 
     print("PATH FINDING COMPLETE")
 
     return path
 
 
-def setupGUI() -> pygame.Surface:
+def setup_gui() -> pygame.Surface:
     """
     Sets up the environment GUI
 
@@ -555,8 +592,8 @@ def run(display: pygame.surface, environment: Environment):
     """
 
     # Runs until the GUI is closed
-    isRunning = True
-    while isRunning:
+    is_running = True
+    while is_running:
         # Updates the environment onto the GUI
         update(display, environment)
 
@@ -568,7 +605,7 @@ def run(display: pygame.surface, environment: Environment):
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
-                isRunning = False
+                is_running = False
 
 
 def update(display: pygame.surface, environment: Environment):
@@ -587,17 +624,17 @@ def update(display: pygame.surface, environment: Environment):
     for y in range(height):
         for x in range(width):
             # Gets the tile's position in the GUI
-            posX = TILE_START_X + x * (TILE_WIDTH + 2)
-            posY = TILE_START_Y + y * (TILE_HEIGHT + 2)
+            pos_x = TILE_START_X + x * (TILE_WIDTH + 2)
+            pos_y = TILE_START_Y + y * (TILE_HEIGHT + 2)
 
             # Gets the type of the tile, this has a colour corresponding to it
-            tileType = environment.get_tile(x, y)
+            tile_type = environment.get_tile(x, y)
 
-            if tileType is None:
-                tileType = EnvType.EMPTY
+            if tile_type is None:
+                tile_type = EnvType.EMPTY
 
             # Draws the tile
-            pygame.draw.rect(display, tileType.value, (posX, posY, TILE_WIDTH, TILE_HEIGHT))
+            pygame.draw.rect(display, tile_type.value, (pos_x, pos_y, TILE_WIDTH, TILE_HEIGHT))
 
     path = environment.get_path()
 
@@ -615,20 +652,20 @@ def update(display: pygame.surface, environment: Environment):
     rover = environment.get_rover()
 
     if rover is not None:
-        rX, rY = rover.getLocation()
+        rover_x, rover_y = rover.get_location()
 
         # Converts the rover's coordinates from meters to pixels
-        rX *= (TILE_WIDTH + 2) / METERS_PER_TILE
-        rY *= (TILE_HEIGHT + 2) / METERS_PER_TILE
+        rover_x *= (TILE_WIDTH + 2) / METERS_PER_TILE
+        rover_y *= (TILE_HEIGHT + 2) / METERS_PER_TILE
 
         rover_diameter = DISTANCE_BETWEEN_MOTORS * TILE_WIDTH / METERS_PER_TILE
 
         # Adjusts the coordinates so that they fit in the map
-        roverX = rX + TILE_START_X - rover_diameter / 2
-        roverY = rY + TILE_START_Y - rover_diameter / 2
+        adjusted_rover_x = rover_x + TILE_START_X - rover_diameter / 2
+        adjusted_rover_y = rover_y + TILE_START_Y - rover_diameter / 2
 
         rover_sprite = pygame.image.load("Rover.png")
-        rover_sprite = pygame.transform.rotozoom(rover_sprite, -rover.getDirection() * 360 / (2 * np.pi) - 90,
-                                                 rover_diameter / 16)
+        rover_sprite = pygame.transform.rotozoom(rover_sprite, -rover.get_direction() * 360
+                                                 / (2 * np.pi) - 90, rover_diameter / 16)
 
-        display.blit(rover_sprite, (roverX, roverY))
+        display.blit(rover_sprite, (adjusted_rover_x, adjusted_rover_y))

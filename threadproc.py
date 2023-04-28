@@ -1,8 +1,12 @@
+"""
+Thread that runs the actions of the commands sent to the digital rover
+"""
+
 import time
 from threading import Thread
 from rover_commands import RoverCommands
 from rover import Rover
-from CONSTANTS import TIME_BETWEEN_MOVEMENTS
+from constants import TIME_BETWEEN_MOVEMENTS
 
 
 class RoverCommandThread(Thread):
@@ -35,36 +39,39 @@ class RoverCommandThread(Thread):
             self._rover_commands.update(self._rover)
             time.sleep(TIME_BETWEEN_MOVEMENTS)
 
-    def getRoverCommand(self) -> RoverCommands:
+    def get_rover_command(self) -> RoverCommands:
+        """
+        :return: The rover commands handler the thread is acting on
+        """
         return self._rover_commands
 
 
-class UserCommandThread(Thread):
-    """
-    A thread that handle's the user's inputs to the simulation
-
-    ...
-
-    Attributes
-    ----------
-
-    _rover_command: RoverCommands
-        The handler of the rover's commands
-
-    """
-    def __init__(self, rover_command: RoverCommands):
-        self._rover_command: RoverCommands = rover_command
-        """ The handler of the rover's commands """
-
-        Thread.__init__(self, daemon=True)
-
-    def run(self) -> None:
-        time.sleep(1)
-        while True:
-            try:
-                # Receives and forwards the given input to the rover's commands
-                motor1_rpm, motor2_rpm, t = input("Enter Data > ").replace(" ", "").split(",")
-                self._rover_command.add_command(float(motor1_rpm), float(motor2_rpm), float(t))
-            except ValueError:
-                # If the inputs do not follow "motor1_rpm: float, motor2_rpm: float, time: float"
-                print("VALUE ERROR")
+# class UserCommandThread(Thread):
+#     """
+#     A thread that handle's the user's inputs to the simulation
+#
+#     ...
+#
+#     Attributes
+#     ----------
+#
+#     _rover_command: RoverCommands
+#         The handler of the rover's commands
+#
+#     """
+#     def __init__(self, rover_command: RoverCommands):
+#         self._rover_command: RoverCommands = rover_command
+#         """ The handler of the rover's commands """
+#
+#         Thread.__init__(self, daemon=True)
+#
+#     def run(self) -> None:
+#         time.sleep(1)
+#         while True:
+#             try:
+#                 # Receives and forwards the given input to the rover's commands
+#                 motor1_rpm, motor2_rpm, t = input("Enter Data > ").replace(" ", "").split(",")
+#                 self._rover_command.add_command(float(motor1_rpm), float(motor2_rpm), float(t))
+#             except ValueError:
+#                 # If the inputs do not follow "motor1_rpm: float, motor2_rpm: float, time: float"
+#                 print("VALUE ERROR")

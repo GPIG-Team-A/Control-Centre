@@ -1,8 +1,8 @@
-from CONSTANTS import DISTANCE_BETWEEN_MOTORS, TIME_BETWEEN_MOVEMENTS, WHEEL_CIRCUMFERENCE
+"""
+Handles the operations of the motor RPMs
+"""
 
-
-def rpms_to_instructions(rpms: list[float]) -> list[tuple[float]]:
-    pass
+from constants import DISTANCE_BETWEEN_MOTORS, TIME_BETWEEN_MOVEMENTS, WHEEL_CIRCUMFERENCE
 
 
 def get_time_for_distance(distance: float, motor_speeds: float) -> float:
@@ -16,17 +16,17 @@ def get_time_for_distance(distance: float, motor_speeds: float) -> float:
     return distance / motor_speeds
 
 
-def getMotorRPM(linSpeed: float) -> float:
+def get_motor_rpm(lin_speed: float) -> float:
     """
     Gets the motors speed if it is producing a forward linear speed x
 
-    :param linSpeed: The forward linear speed from the motor
+    :param lin_speed: The forward linear speed from the motor
     :return: The rotation speed of the motor
     """
-    return linSpeed * 60 / WHEEL_CIRCUMFERENCE
+    return lin_speed * 60 / WHEEL_CIRCUMFERENCE
 
 
-def getRoverSpeed(rpm: float) -> float:
+def get_rover_speed(rpm: float) -> float:
     """
     Gets the linear wheel speed in the forward direction of the rover in meters per second
 
@@ -36,7 +36,8 @@ def getRoverSpeed(rpm: float) -> float:
     return rpm * WHEEL_CIRCUMFERENCE / 60
 
 
-def angleFromMotorSpeed(motor1_speed: float, motor2_speed: float, time: float = TIME_BETWEEN_MOVEMENTS) -> float:
+def angle_from_motor_speed(motor1_speed: float, motor2_speed: float,
+                           time: float = TIME_BETWEEN_MOVEMENTS) -> float:
     """
     Calculates the angle rotated by using two motors at the same speed in opposite directions.
 
@@ -53,9 +54,10 @@ def angleFromMotorSpeed(motor1_speed: float, motor2_speed: float, time: float = 
     return time * (motor1_speed - motor2_speed) / DISTANCE_BETWEEN_MOTORS
 
 
-def getRPMForStillRotation(angle: float, time: float) -> float:
+def get_rpm_for_still_rotation(angle: float, time: float) -> float:
     """
-    Returns the absolute motor RPMs needed to rotate the rover by the angle with no changes to its coordinates
+    Returns the absolute motor RPMs needed to rotate the rover by the
+    angle with no changes to its coordinates
 
     If:     x = getRPMForStillRotation(θ, t)
 
@@ -67,4 +69,4 @@ def getRPMForStillRotation(angle: float, time: float) -> float:
     :param time: The amount of time the rotation will occur
     :return: The absolute RPMs needed for the rotation
     """
-    return getMotorRPM(angle * DISTANCE_BETWEEN_MOTORS / (2 * time))
+    return get_motor_rpm(angle * DISTANCE_BETWEEN_MOTORS / (2 * time))

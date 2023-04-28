@@ -1,10 +1,15 @@
+"""
+Loads an environment from a file
+"""
+
 from environment import Environment, EnvType, get_environment_type_from_value
-from CONSTANTS import METERS_PER_TILE
+from constants import METERS_PER_TILE
 from PIL import Image
 from numpy import ceil
 
 
-def image_to_environment(width: float, height: float, image_filename: str = "env.png") -> Environment:
+def image_to_environment(width: float, height: float, image_filename: str = "env.png")\
+        -> Environment:
     """
     Contructs an Environment using an image
 
@@ -38,17 +43,12 @@ def image_to_environment(width: float, height: float, image_filename: str = "env
             color_list = []
             size_list = []
 
-            max_index = 0
-
             for pixel_y in range(height_pixels_per_tile):
                 for pixel_x in range(width_pixels_per_tile):
                     coord_x = x * width_pixels_per_tile + pixel_x
                     coord_y = y * height_pixels_per_tile + pixel_y
 
                     color = img.getpixel((coord_x, coord_y))
-
-                    if color != (0, 0, 0) and color != (255, 0, 0) and color != (0, 255, 0):
-                        print(color)
 
                     if color not in color_list:
                         color_list.append(color)

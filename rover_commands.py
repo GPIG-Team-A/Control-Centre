@@ -1,20 +1,33 @@
+"""
+Handles the commands the rover will receive
+"""
+
+
 from enum import Enum
 from queue import Queue
 
-import CONSTANTS
-from rover import Rover
-from maths_helper import get_angle_from_vectors, convert_angle_to_2D_vector
-import numpy as np
 import json
+import constants
+from rover import Rover
+from maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
+import numpy as np
 
 
 class RoverCommandType(Enum):
+    """
+    The type of the commands
+    """
+
     MOVE = 0
+    """ Command for the rover to move a certain distance """
     ROTATE = 1
+    """ Command for the rover to rotate a certain angle """
     RPMS = 2
+    """ Command to run certain speeds on the motors for a certain time """
 
 
-ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE, RoverCommandType.ROTATE, RoverCommandType.RPMS]
+ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE, RoverCommandType.ROTATE,
+                                       RoverCommandType.RPMS]
 
 
 class RoverCommands:
@@ -69,12 +82,12 @@ class RoverCommands:
         :param value: The value specific to the command type
         :param time: The time the command will run for
         """
-        v = value
+        val = value
 
-        if type(value) is not tuple:
-            v = value * CONSTANTS.TIME_BETWEEN_MOVEMENTS / time
+        if isinstance(value, tuple):
+            val = value * constants.TIME_BETWEEN_MOVEMENTS / time
 
-        self._command_queue.put((float(command_type.value), v, time))
+        self._command_queue.put((float(command_type.value), val, time))
         print(f"COMMAND ADDED: {(command_type, value, time)}")
 
     def update(self, rover: Rover):
@@ -89,19 +102,20 @@ class RoverCommands:
         # Ensures there is a current command
         if self._current_command is not None:
             # Applies the current command
-            commandType, value, timeUnitsLeft = self._current_command
-            commandType = ROVER_TYPES[int(commandType)]
+            command_type, value, time_units_left = self._current_command
+            command_type = ROVER_TYPES[int(command_type)]
 
-            if commandType == RoverCommandType.MOVE:
+            if command_type == RoverCommandType.MOVE:
                 rover.move(value)
-            elif commandType == RoverCommandType.ROTATE:
+            elif command_type == RoverCommandType.ROTATE:
                 rover.rotate(value)
-            elif commandType == RoverCommandType.RPMS:
+            elif command_type == RoverCommandType.RPMS:
                 motor1_speed, motor2_speed = value
                 rover.motor_move(motor1_speed, motor2_speed)
 
             # Updates the time remaining of the current command
-            self._current_command = (commandType.value, value, timeUnitsLeft - CONSTANTS.TIME_BETWEEN_MOVEMENTS)
+            self._current_command = (command_type.value, value, time_units_left -
+                                     constants.TIME_BETWEEN_MOVEMENTS)
 
     def _check_command(self):
         """ Ensures that the current command is valid, updating if not """
@@ -116,8 +130,9 @@ class RoverCommands:
                 self._current_command = self._command_queue.get()
 
                 value = self._current_command[1]
-                if type(self._current_command[1]) is not tuple:
-                    value = self._current_command[1] * self._current_command[2] / CONSTANTS.TIME_BETWEEN_MOVEMENTS
+                if not isinstance(self._current_command[1], tuple):
+                    value = self._current_command[1] * self._current_command[2]\
+                            / constants.TIME_BETWEEN_MOVEMENTS
 
                     if ROVER_TYPES[int(self._current_command[0])] == RoverCommandType.ROTATE:
                         value *= 360 / (2 * np.pi)
@@ -135,9 +150,9 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
 
     :param instructions: The instructions to save
     """
-    
+
     to_export = []
-    for command_type, value, t in instructions:
+    for command_type, value, _ in instructions:
         named_type = ""
         if command_type == RoverCommandType.MOVE:
             value = value * 100 # Convert to cm from m
@@ -149,7 +164,8 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
     json.dump(to_export, open("test.json", "w"))
 
 
-def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0) -> list[tuple[float]]:
+def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0)\
+        -> list[tuple[float]]:
     """
     Creates a set of rover instructions (command_type, value, time) from the path given
 
@@ -163,41 +179,42 @@ def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction:
 
     cmds: list[tuple[float]] = []
 
-    for px, py in path[1:]:
+    for path_x, path_y in path[1:]:
         # Gets the direction to the next node
-        dx = px - cur_pos[0]
-        dy = py - cur_pos[1]
+        dx = path_x - cur_pos[0]
+        dy = path_y - cur_pos[1]
 
         # The current direction vector (dirX, dirY)
-        v1 = convert_angle_to_2D_vector(cur_direction)
+        vector_1 = convert_angle_to_2d_vector(cur_direction)
         # The next direction vector (dirX', dirY')
-        v2 = (dx, dy)
+        vector_2 = (dx, dy)
 
         # The next angular direction of the rover
         new_angle = np.arctan2(dy, dx)
 
-        # The angle the rover needs to turn to reach the new direction, is signed angular direction in radians
-        dAngle = get_angle_from_vectors(v1, v2)
+        # The angle the rover needs to turn to reach the new direction,
+        # is signed angular direction in radians
+        d_angle = get_angle_from_vectors(vector_1, vector_2)
 
         # If the angle is 0 then no change in direction is needed
-        if dAngle != 0:
+        if d_angle != 0:
             # Adds the change direction command
-            cmds.append((RoverCommandType.ROTATE, -dAngle, 0.2))
+            cmds.append((RoverCommandType.ROTATE, -d_angle, 0.2))
 
         # Gets the distance that the rover will traverse in meters
-        distance = np.sqrt(dx * dx + dy * dy) * CONSTANTS.METERS_PER_TILE
+        distance = np.sqrt(dx * dx + dy * dy) * constants.METERS_PER_TILE
 
         # The maximum speed in m/s
         max_speed_rpm = 1
 
         # The time the rover will move at 'max_speed_rpm' to reach its next goal
-        t = distance / max_speed_rpm
+        time = distance / max_speed_rpm
 
         # Adds the move forward command
-        cmds.append((RoverCommandType.MOVE, distance, t))
+        cmds.append((RoverCommandType.MOVE, distance, time))
 
         # Updates the rovers position and angle
-        cur_pos = (px, py)
+        cur_pos = (path_x, path_y)
         cur_direction = new_angle
 
     return cmds
