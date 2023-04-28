@@ -2,10 +2,10 @@
 Loads an environment from a file
 """
 
-from environment import Environment, EnvType, get_environment_type_from_value
-from constants import METERS_PER_TILE
 from PIL import Image
 from numpy import ceil
+from environment import Environment, EnvType, get_environment_type_from_value
+from constants import METERS_PER_TILE
 
 
 def image_to_environment(width: float, height: float, image_filename: str = "env.png")\

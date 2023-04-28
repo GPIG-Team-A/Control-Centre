@@ -8,9 +8,9 @@ from queue import Queue
 
 import json
 import constants
+import numpy as np
 from rover import Rover
 from maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
-import numpy as np
 
 
 class RoverCommandType(Enum):
