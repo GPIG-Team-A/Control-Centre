@@ -91,7 +91,8 @@ class Rover:
 
         :param angle: The relative angle to rotate by, in radians
         """
-        abs_motor_speeds = rover_rpm_instructions.get_rpm_for_still_rotation(angle, TIME_BETWEEN_MOVEMENTS)
+        abs_motor_speeds = rover_rpm_instructions.\
+            get_rpm_for_still_rotation(angle, TIME_BETWEEN_MOVEMENTS)
 
         self.motor_move(abs_motor_speeds, -abs_motor_speeds)
 
