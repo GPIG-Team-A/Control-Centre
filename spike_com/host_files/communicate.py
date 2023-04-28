@@ -27,7 +27,7 @@ class CommunicationHandler:
         """
         self.socket.flush()
         self.recv_thread.start()
-    
+
     def send(self, packet):
         """
             Send a command over to the hub with the given data
@@ -45,7 +45,7 @@ class CommunicationHandler:
             self.socket.write(payload)
         except BufferError as error:
             print(f"Error occured whilst sending: {error}")
-        
+
         print(f"Sent {len(payload)} bytes of data")
         self.lock.release()
 
@@ -58,7 +58,7 @@ class CommunicationHandler:
                 function (func): The function to execute with the data parameter
         """
         self.listeners[packet_type.CODE] = function
-    
+
     def _recv_raw(self):
         self.lock.acquire()
         try:
