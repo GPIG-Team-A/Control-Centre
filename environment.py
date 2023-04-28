@@ -96,7 +96,8 @@ class Environment:
         the total nodes
 
     get_path() -> list[tuple[int]]
-        Gets the path from the start to the end, that the rover can traverse without encountering an obstacle
+        Gets the path from the start to the end, that the rover can traverse without encountering
+        an obstacle
 
     """
 
@@ -106,7 +107,8 @@ class Environment:
         :param height: The amount of tiles in each column of the 2D map
         """
 
-        self._map: list[list[EnvType]] = [[EnvType.EMPTY for _ in range(width)] for _ in range(height)]
+        self._map: list[list[EnvType]] = [[EnvType.EMPTY for _ in range(width)]
+                                          for _ in range(height)]
         """ The 2D representation of the environment from a top-down view 
             Each tile is accessed using its coordinates (x, y) by self._map[y][x]
         """
@@ -120,8 +122,8 @@ class Environment:
         """ The goal node, which the rover will work towards """
 
         self._path = None
-        """ The cache list of coordinates which the rover can traverse from the start to end without encountering
-            any obstacles
+        """ The cache list of coordinates which the rover can traverse from the start 
+            to end without encountering any obstacles
         """
 
     def set_start_end(self, start: tuple[int], end: tuple[int]):
@@ -205,7 +207,8 @@ class Environment:
 
     def get_path(self) -> list[tuple[int]]:
         """
-        :return: The path between the start and end nodes that can be reached without traversing any obstacles
+        :return: The path between the start and end nodes that can be reached
+        without traversing any obstacles
         """
 
         # No path between null starts and ends
@@ -273,6 +276,7 @@ def f_x(p1, p2, y):
 
     return m * (y - p1[1]) + p1[0]
 
+
 def f_y(p1, p2, x):
     m = (p2[1] - p1[1]) / (p2[0] - p1[0])
 
@@ -287,7 +291,7 @@ def get_intersected_coordinates(p1: tuple[float], p2: tuple[float]) -> list[tupl
     y_max = int(np.floor(np.max([p1[1], p2[1]])))
 
     return [(x, int(f_y(p1, p2, x))) for x in range(x_min, x_max)] \
-        + [(int(f_x(p1, p2, y)), y) for y in range(y_min, y_max)]
+           + [(int(f_x(p1, p2, y)), y) for y in range(y_min, y_max)]
 
 
 def _is_line_of_sight(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
@@ -307,7 +311,7 @@ def _is_line_of_sight(env: Environment, n1: tuple[int], n2: tuple[int]) -> bool:
                   n1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
     endPoint = [n2[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                  n2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+                n2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
     for n in range(rays_cast):
         p1 = (startPoint[0] + n * (dist / (rays_cast - 1)) * perpendicular_vector[0],
@@ -415,7 +419,7 @@ def _update_vertex(env: Environment, OPEN: list[tuple[int]], g: list[list[float]
                 g[n2[1]][n2[0]] = _cost(g, n_parent, n2)
                 parent[n2[1]][n2[0]] = n_parent
 
-                if not (n2 in OPEN):
+                if n2 not in OPEN:
                     OPEN.append(n2)
         else:
             # If the cost of the traversal from n1 to n2 is smaller than n2's
@@ -424,7 +428,7 @@ def _update_vertex(env: Environment, OPEN: list[tuple[int]], g: list[list[float]
                 g[n2[1]][n2[0]] = _cost(g, n1, n2)
                 parent[n2[1]][n2[0]] = n1
 
-                if not (n2 in OPEN):
+                if n2 not in OPEN:
                     OPEN.append(n2)
 
 
@@ -511,7 +515,7 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
         neighbours = _get_neighbours(environment, node)
 
         for n in neighbours:
-            if not (n in CLOSED):
+            if n not in CLOSED:
                 _update_vertex(environment, OPEN, g, parent, node, n)
 
     revPath = []
