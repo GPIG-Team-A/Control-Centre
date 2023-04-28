@@ -14,7 +14,7 @@ from environment_interface import image_to_environment
 if __name__ == '__main__':
     display = environment.setup_gui()
 
-    env = image_to_environment(2.5, 2.5, image_filename="test_env.png")
+    env = image_to_environment(2.5, 2.5, image_filename="resources/test_env.png")
 
     # env = Environment(10, 40)
     # env.set_start_end((5, 39), None)
