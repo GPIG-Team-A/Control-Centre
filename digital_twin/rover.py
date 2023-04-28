@@ -87,7 +87,8 @@ class Rover:
             motor1_speed_adj += motor1_randomness
             motor2_speed_adj += motor2_randomness
 
-        angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed_adj, motor2_speed_adj)
+        angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed_adj,
+                                                                     motor2_speed_adj)
         distance = (motor1_speed + motor2_speed) * time
 
         self._direction += angle_change
