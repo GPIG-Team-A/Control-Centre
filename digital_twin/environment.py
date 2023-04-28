@@ -608,6 +608,14 @@ def run(display: pygame.surface, environment: Environment):
                 is_running = False
 
 
+def run_new():
+    pass
+
+def update_new(environment: Environment):
+    
+    path = environment.get_path()
+
+
 def update(display: pygame.surface, environment: Environment):
     """
     Updates the environment onto the GUI
@@ -668,4 +676,8 @@ def update(display: pygame.surface, environment: Environment):
         rover_sprite = pygame.transform.rotozoom(rover_sprite, -rover.get_direction() * 360
                                                  / (2 * np.pi) - 90, rover_diameter / 16)
 
+<<<<<<< Updated upstream:digital_twin/environment.py
         display.blit(rover_sprite, (adjusted_rover_x, adjusted_rover_y))
+=======
+    #    display.blit(rover_sprite, (roverX, roverY))
+>>>>>>> Stashed changes:environment.py

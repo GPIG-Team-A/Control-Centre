@@ -53,7 +53,7 @@ if __name__ == '__main__':
     #
     # rover_cmds = [(RoverCommandType.RPMS, x, 0.1) for x in speeds]
 
-    # save_rover_instructions_as_json(rover_cmds)
+    formatted_instructs = save_rover_instructions_as_json(rover_cmds)
 
     for cmd_type, value, t in rover_cmds:
         rover_command.add_command(cmd_type, value, t)

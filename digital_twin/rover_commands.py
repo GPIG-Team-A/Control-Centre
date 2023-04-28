@@ -160,10 +160,15 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
         elif command_type == RoverCommandType.ROTATE:
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
+<<<<<<< Updated upstream:digital_twin/rover_commands.py
         to_export.append({"type": named_type, "value":value})
 
     with open("test.json", "w", encoding="UTF-8") as dump_file:
         json.dump(to_export, dump_file)
+=======
+        to_export.append({"type":named_type, "value":value})
+    json.load(to_export, open("test.json", "w"))
+>>>>>>> Stashed changes:rover_commands.py
 
 
 def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0)\
