@@ -8,7 +8,7 @@ from digital_twin import constants
 from digital_twin import environment
 from digital_twin.rover import Rover
 from digital_twin.threadproc import RoverCommandThread
-from digital_twin.rover_commands import create_rover_instructions_from_path
+from digital_twin.rover_commands import create_rover_instructions_from_path, rover_instructions_to_json
 from digital_twin.environment_interface import image_to_environment
 
 if __name__ == '__main__':
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     #
     # rover_cmds = [(RoverCommandType.RPMS, x, 0.1) for x in speeds]
 
-    formatted_instructs = save_rover_instructions_as_json(rover_cmds)
+    formatted_instructs = rover_instructions_to_json(rover_cmds)
 
     for cmd_type, value, t in rover_cmds:
         rover_command.add_command(cmd_type, value, t)

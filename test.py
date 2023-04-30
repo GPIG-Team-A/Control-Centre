@@ -1,32 +1,26 @@
+"""
+    UI Main Entrance
+"""
 import sys
-import pyqtgraph as pg
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QMenu,QFileDialog, QToolBar, QAction,QSpinBox, QAction, QLabel, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton ,QStackedLayout  ,QGraphicsView
-from PyQt5.QtGui import QPixmap, QIntValidator,QPainter, QBrush, QPen
-# Import imageio
-import imageio
-import digital_twin.environment
-from digital_twin.rover import Rover
-# Import numpy
 import numpy
-
-from digital_twin.constants import *
-import numpy
-
-import digital_twin.constants
-import digital_twin.environment
-from digital_twin.environment import Environment
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtWidgets import QApplication, \
+    QLabel, QMainWindow, QMenu,QFileDialog, QToolBar, QSpinBox, \
+    QAction, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton
+from PyQt5.QtGui import QIntValidator, QPainter
 from digital_twin.rover import Rover
+from digital_twin import constants
+from digital_twin.environment import EnvType
 from digital_twin.threadproc import RoverCommandThread
-from digital_twin.rover_commands import create_rover_instructions_from_path, save_rover_instructions_as_json, RoverCommandType
+from digital_twin.rover_commands import create_rover_instructions_from_path,\
+    rover_instructions_to_json, RoverCommandType
 from digital_twin.environment_interface import image_to_environment
-import sys
 
+# Constants
 SCREEN_WIDTH = 1000
 """ The width of the GUI in pixels"""
 SCREEN_HEIGHT = 900
 """ The height of the GUI in pixels """
-
 TILE_START_X = 10
 """ The starting x coordinate of the tile map """
 TILE_START_Y = 10
@@ -35,249 +29,236 @@ TILE_WIDTH = 20
 """ The width of each tile in pixels """
 TILE_HEIGHT = 20
 """ The height of each tile in pixels """
-path = []
 
 class Grid(QWidget):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        SCALE = 0.7
+    """ Visual representation of an environment """
+
+    SCALE = 0.7
+
+    def __init__(self, environment, **kwargs):
+        super().__init__(**kwargs)
         self.setFixedSize(800, 800)
         self.columns = 400
         self.rows = 300
-        self.squareSize = TILE_WIDTH
+        self.square_size = TILE_WIDTH
+        self.environment = environment
 
         # some random objects
         self.objects = [
-            (10, 20), 
-            (11, 21), 
-            (12, 20), 
-            (12, 22), 
+            (10, 20),
+            (11, 21),
+            (12, 20),
+            (12, 22),
         ]
 
 
-    def paintEvent(self, event):
-        global env, path
+    def paintEvent(self, _):
         qp = QPainter(self)
         # translate the painter by half a pixel to ensure correct line painting
         qp.translate(.5, .5)
         qp.setRenderHints(qp.Antialiasing)
 
-        width, height = env.size()
+        width, height = self.environment.size()
         # we need to add 1 to draw the topmost right/bottom lines too
        # print(height)
         # create a smaller rectangle
-        objectSize = TILE_WIDTH
-        margin = self.squareSize* .1
-        objectRect = QRectF(margin, margin, objectSize, objectSize)
-        nodeRect = QRectF(margin, margin, objectSize/2, objectSize/2)
+        object_size = TILE_WIDTH
+        margin = self.square_size* .1
+        object_rect = QRectF(margin, margin, object_size, object_size)
+        node_rect = QRectF(margin, margin, object_size/2, object_size/2)
         
         for y in range(int(height - 1)):
             for x in range(int(width - 1)):
                 # Gets the tile's position in the GUI
-                posX = TILE_START_X + x * (TILE_WIDTH + 2)
-                posY = TILE_START_Y + y * (TILE_HEIGHT + 2)
+                pos_x = TILE_START_X + x * (TILE_WIDTH + 2)
+                pos_y = TILE_START_Y + y * (TILE_HEIGHT + 2)
 
                 # Gets the type of the tile, this has a colour corresponding to it
-                tileType = env.get_tile(x, y)
+                tile_type = self.environment.get_tile(x, y)
               #  print("{x} {y}")
-                if tileType is None:
-                    tileType = digital_twin.environment.EnvType.EMPTY
+                if tile_type is None:
+                    tile_type = EnvType.EMPTY
 
                 # Draws the tile
-                qp.drawLine(posX, posY, posX + TILE_WIDTH, posY)
-                qp.drawLine(posX, posY, posX , posY + TILE_HEIGHT)
-                if(tileType == digital_twin.environment.EnvType.OBSTACLE):
-                    
+                qp.drawLine(pos_x, pos_y, pos_x + TILE_WIDTH, pos_y)
+                qp.drawLine(pos_x, pos_y, pos_x , pos_y + TILE_HEIGHT)
+                if tile_type == EnvType.OBSTACLE:
                     qp.setBrush(Qt.red)
-                    qp.drawRect(objectRect.translated(
-                        posX,posY) )
-
-            
+                    qp.drawRect(object_rect.translated(pos_x,pos_y))
 
         qp.setBrush(Qt.green)
+        path = self.environment.get_path()
         for i in range(len(path) - 1):
             pos_1 = path[i]
             pos_2 = path[i + 1]
             x = [TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2), TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2)]
             y = [TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2),TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)]
             qp.drawLine(int(x[0]),int(y[0]),int(x[1]),int(y[1]))
-            qp.drawEllipse(nodeRect.translated(
+            qp.drawEllipse(node_rect.translated(
                 x[0] - 0.25*((TILE_WIDTH + 2)),y[0] - 0.25*((TILE_WIDTH + 2))))
-            qp.drawEllipse(nodeRect.translated(
+            qp.drawEllipse(node_rect.translated(
                 x[1] - 0.25*((TILE_WIDTH + 2)),y[1] - 0.25*((TILE_WIDTH + 2))))
         qp.end()
 
 class Window(QMainWindow):
     """Main Window."""
-    def __init__(self, parent=None, ):
+
+    def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
         
-        self.fileName = "./resources/env.png"
-        self.run_rover_main()
+        self.environment = None
+        self.grid = None
         self.setWindowTitle("Python Menus & Toolbars")
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.centralWidget = QLabel("Hello, World")
-        self.centralWidget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.setCentralWidget(self.centralWidget)
-        self._createActions()
-        self._createMenuBar()
-        self._createToolBars()
+        self.central_widget = QLabel("Load an Environment: File -> Open")
+        self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.setcentral_widget(self.central_widget)
+        self._build_ui()
+        self._create_actions()
+        self._create_menu_bar()
+        self._create_toolbars()
         self._createDockWindow()
-        self.add_grid()
-        
-        timer = QTimer(self)
-      #  timer.timeout.connect(self.add_grid)
-        timer.start(1000)
-        
-    def openFileNameDialog(self):
-        global path
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.py)", options=options)
-        if fileName:
-            self.fileName = fileName
-            path = []
-
-    def load_path(self):
-        global path,env
-        path = env.get_path()
-
-
-    def _createDockWindow(self):
-        global env
-        dockWidget = QDockWidget(str("Dock Widget"), self)
-        dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea |
+    
+    def _build_ui(self):
+        """
+            Build the UI components
+        """
+        # Create Dock Window
+        dock_widget = QDockWidget(str("Dock Widget"), self)
+        dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
                                            Qt.RightDockWidgetArea)
         
         layout = QVBoxLayout()
         #layout.addWidget(QLabel("font size"))
-        xEditBox = QLineEdit()
-        xEditBox.setPlaceholderText("Number of runs")
-        xEditBox.setValidator( QIntValidator(1,100000) )
-        layout.addWidget(xEditBox)
-        
-        
-        loadButton = QPushButton("Load")
-        loadButton.clicked.connect(self.run_rover_main)
-        layout.addWidget(loadButton)
-        
-        runButton = QPushButton("Run")
-        runButton.clicked.connect(self.load_path)
-        layout.addWidget(runButton)
+        edit_box = QLineEdit()
+        edit_box.setPlaceholderText("Number of runs")
+        edit_box.setValidator( QIntValidator(1,100000) )
+        layout.addWidget(edit_box)
+       
+        run_button = QPushButton("Run")
+        run_button.clicked.connect(self.run_rover_main)
+        layout.addWidget(run_button)
 
-        
         widg = QWidget()
         widg.setLayout(layout)
 
-        dockWidget.setWidget(widg)
-        dockWidget.setGeometry(100, 0, 200, 30)
+        dock_widget.setWidget(widg)
+        dock_widget.setGeometry(100, 0, 200, 30)
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, dockWidget)
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock_widget)
 
-    def _createActions(self):
+        # Create Actions
         # Creating action using the first constructor
-        self.newAction = QAction(self)
-        self.newAction.setText("&New")
+        self.new_action = QAction(self)
+        self.new_action.setText("&New")
+
         # Creating actions using the second constructor
-        self.openAction = QAction("&Open...", self)
-        self.openAction.triggered.connect(self.openFileNameDialog)
-        self.saveAction = QAction("&Save", self)
-        self.exitAction = QAction("&Exit", self)
-        self.copyAction = QAction("&Copy", self)
-        self.pasteAction = QAction("&Paste", self)
-        self.cutAction = QAction("&Cut", self)
-        self.helpContentAction = QAction("&Help Content", self)
-        self.aboutAction = QAction("&About", self)
+        self.open_action = QAction("&Open...", self)
+        self.open_action.triggered.connect(self.open_load_environment_dialog)
+        self.save_action = QAction("&Save", self)
+        self.exit_action = QAction("&Exit", self)
+        self.copy_action = QAction("&Copy", self)
+        self.paste_action = QAction("&Paste", self)
+        self.cut_action = QAction("&Cut", self)
+        self.help_content_action = QAction("&Help Content", self)
+        self.about_action = QAction("&About", self)
 
-        
         # rover actions
-        self.connectAction = QAction("&Connect To Rover",self)
-        self.connectAction.triggered.connect(self.dummy_function)
-        
-    
-    
-    def dummy_function(self,s):
-        print("run dummy function\n")
+        #self.connect_action = QAction("&Connect To Rover",self)
+        #self.connect_action.triggered.connect(self.dummy_function)
 
-    def _createToolBars(self):
+        # Create Toolbars
         # Using a title
         fileToolBar = self.addToolBar("File")
         # Using a QToolBar object
-        editToolBar = QToolBar("Edit", self)
-        self.addToolBar(editToolBar)
+        edit_tool_bar = QToolBar("Edit", self)
+        self.addToolBar(edit_tool_bar)
         # Using a QToolBar object and a toolbar area
         helpToolBar = QToolBar("Help", self)
         self.addToolBar(Qt.LeftToolBarArea, helpToolBar)
-        self.fontSizeSpinBox = QSpinBox()
-        self.fontSizeSpinBox.setFocusPolicy(Qt.NoFocus)
+        self.font_size_spin_box = QSpinBox()
+        self.font_size_spin_box.setFocusPolicy(Qt.NoFocus)
         label = QLabel("font size")
-        editToolBar.addWidget(label)
-        editToolBar.addWidget(self.fontSizeSpinBox)
+        edit_tool_bar.addWidget(label)
+        edit_tool_bar.addWidget(self.font_size_spin_box)
 
-    def _createMenuBar(self):
-        menuBar = self.menuBar()
-        self.setMenuBar(menuBar)
+        # Create Menu Bars
+        menu_bar = self.menuBar()
+        self.setMenuBar(menu_bar)
         # Creating menus using a QMenu object
-        fileMenu = QMenu("&File", self)
-        menuBar.addMenu(fileMenu)
-        fileMenu.addAction(self.connectAction)
-        fileMenu.addAction(self.openAction)
-        fileMenu.addAction(self.saveAction)
-        fileMenu.addAction(self.exitAction)
+        file_menu = QMenu("&File", self)
+        menu_bar.addMenu(file_menu)
+        file_menu.addAction(self.connect_action)
+        file_menu.addAction(self.open_action)
+        file_menu.addAction(self.save_action)
+        file_menu.addAction(self.exit_action)
         # Creating menus using a title
-        editMenu = menuBar.addMenu("&Edit")
-        helpMenu = menuBar.addMenu("&Help")
+        editMenu = menu_bar.addMenu("&Edit")
+        helpMenu = menu_bar.addMenu("&Help")
+        
+    def open_load_environment_dialog(self):
+        """
+            Open interaction dialog to open a new environment png file
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Environment Image File", "","All Files (*)", options=options)
+        if file_name:
+            self.load_environment(file_name)
+
+    def add_grid(self, environment):
+        self.grid = Grid(environment)
+        self.setcentral_widget(self.grid)
     
+    def load_environment(self, image_filename):
+        """
+            Load an environment into the UI
+        """
+        self.environment = image_to_environment(2.5, 2.5, image_filename=image_filename)
 
-    def add_grid(self):
-        g = Grid()
-        self.setCentralWidget(g)
+        start_pos, _ = self.environment.get_start_end()
 
+        rover = Rover((start_pos[0] + 0.5) * constants.METERS_PER_TILE,
+                    (start_pos[1] + 0.5) * constants.METERS_PER_TILE, -numpy.pi / 2)
+        self.environment.set_rover(rover)
+
+        # Load the grid UI
+        self.add_grid(self.environment)
 
     def run_rover_main(self):
-        global env, path
-        env = image_to_environment(2.5, 2.5, image_filename=self.fileName)
-        #env.set_start_end((5, 39), None)
+        """
+            Execute the Rover Commands
+        """
+        # Get the rover from our environment
+        rover = self.environment.get_rover()
 
-        start_pos, end_pos = env.get_start_end()
-
-        rover = Rover((start_pos[0] + 0.5) * METERS_PER_TILE,
-                    (start_pos[1] + 0.5) * METERS_PER_TILE, -numpy.pi / 2)
-        env.set_rover(rover)
-
+        # Start rover command thread
         cmd_thread = RoverCommandThread(rover)
         cmd_thread.start()
-
         rover_command = cmd_thread.get_rover_command()
         
+        # Bunch of stuff I no understand
         mean_power = 50.01724137931034
         stdev = 0.8806615716635956
-
         tst = [(mean_power + numpy.random.normal(0, stdev), -mean_power + numpy.random.normal(0, stdev)) for _ in range(28)]
-
         max_speed = 1
-
         speeds = [(x[0] /100 * max_speed, -x[1] / 100 * max_speed) for x in tst]
-
         rover_cmds = [(RoverCommandType.RPMS, x, 0.1) for x in speeds]
-
-        #formatted_instructs =save_rover_instructions_as_json(rover_cmds)
-
         for cmd_type, value, t in rover_cmds:
             rover_command.add_command(cmd_type, value, t)
 
+        # Get rover commands to send to physical rover
+        path = self.environment.get_path()
+        rover_commands = create_rover_instructions_from_path(path, rover.get_direction())
+        formatted_instructs = rover_instructions_to_json(rover_commands)
 
-        path = env.get_path()
+        print("Outputting to JSON")
+        import json
+        json.dump(formatted_instructs, open("test.json", "w"))
 
 if __name__ == "__main__":
-    
     app = QApplication(sys.argv)
     win = Window()
-    win.run_rover_main()
-  #  win.draw_grid()
-    
-    
     win.show()
-
     sys.exit(app.exec_())
