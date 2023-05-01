@@ -22,6 +22,16 @@ class SpikeHandler:
         self.connected = False
         self.communication_handler = None
     
+    def _bind(self):
+        """
+            Bind to port
+        """
+        try:
+            subprocess.run(["sudo", "rfcomm", "bind", "0", MAC], check=True)
+        except subprocess.CalledProcessError as error:
+            print("[Spike-Com] Error unable to bind: ", error)
+            self.disconnect()
+    
     def connect(self, callback_function):
         """
             Attempt to connect to the Rover
@@ -31,14 +41,7 @@ class SpikeHandler:
         def _connect():
             self.disconnect()
             # Attempt to make connection here
-            try:
-                subprocess.run(["sudo", "rfcomm", "bind", "0", MAC], check=True)
-            except subprocess.CalledProcessError as error:
-                print("[Spike-Com] Error unable to bind: ", error)
-                self.disconnect()
-                callback_function(False)
-                return
-            print("[Spike-Com] Connected!")
+            self._bind()
 
             # Try to run the hub file
             try:
@@ -90,6 +93,28 @@ class SpikeHandler:
             return False
         return str(log)
 
+    def update_rover_files(self):
+        """
+            Update the files on the rover
+        """
+        self._bind()
+        # Send all hub files to the hub
+        python_files = [x for x in os.listdir("spike_com/hub_files/") if
+                        x.endswith(".py") and not x == "main.py"]
+        # Create directory
+        subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "mkdir",
+                        "--exists-okay", f"{REMOTE_DIRECTORY}"], check=False)
+        for file in python_files:
+            print(f"Uploading {file}")
+            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0", "rm",
+                            f"{REMOTE_DIRECTORY}/{file}"], check=False)
+            time.sleep(1)
+            subprocess.run(["sudo", "ampy", "--port", "/dev/rfcomm0",
+                "put", f"spike_com/hub_files/{file}", f"{REMOTE_DIRECTORY}/{file}"],
+                check=False)
+            time.sleep(1)
+        print("Update complete")
+
     def disconnect(self):
         """
             Disconnect from Hub
@@ -99,7 +124,6 @@ class SpikeHandler:
         except subprocess.CalledProcessError as error:
             print("[Spike-Com] Error unable to bind: ", error)
         print("[Spike-Com] Disconnected!")
-
 
 
 if __name__ == "__main__":

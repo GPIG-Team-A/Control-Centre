@@ -212,7 +212,16 @@ class Window(QMainWindow):
         self.log_dump_action = QAction("&Log Dump", self)
         self.log_dump_action.triggered.connect(self.log_dump)
         edit_menu.addAction(self.log_dump_action)
-        #help_menu = menu_bar.addMenu("&Help")
+        self.update_rover_action = QAction("&Update Rover", self)
+        self.update_rover_action.triggered.connect(self.update_rover)
+        edit_menu.addAction(self.update_rover_action)
+    
+    def update_rover(self):
+        """
+            Update rover files
+        """
+        self.spike_handler.update_rover_files()
+        self._show_message_box(QMessageBox.Information, "Updated!", "Check logs for complete output")
     
     def log_dump(self):
         """
