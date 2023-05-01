@@ -52,7 +52,10 @@ class Grid(QWidget):
         ]
 
 
-    def paintEvent(self, _):
+    def paintEvent(self, _): # pylint: disable=W0631
+        """
+            Paint the Grid
+        """
         qp = QPainter(self)
         # translate the painter by half a pixel to ensure correct line painting
         qp.translate(.5, .5)
@@ -91,8 +94,10 @@ class Grid(QWidget):
         for i in range(len(path) - 1):
             pos_1 = path[i]
             pos_2 = path[i + 1]
-            x = [TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2), TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2)]
-            y = [TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2),TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)]
+            x = [TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2), 
+                 TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2)]
+            y = [TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2),
+                 TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)]
             qp.drawLine(int(x[0]),int(y[0]),int(x[1]),int(y[1]))
             qp.drawEllipse(node_rect.translated(
                 x[0] - 0.25*((TILE_WIDTH + 2)),y[0] - 0.25*((TILE_WIDTH + 2))))
@@ -106,20 +111,16 @@ class Window(QMainWindow):
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
-        
+ 
         self.environment = None
         self.grid = None
         self.setWindowTitle("Python Menus & Toolbars")
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.central_widget = QLabel("Load an Environment: File -> Open")
         self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.setcentral_widget(self.central_widget)
+        self.setCentralWidget(self.central_widget)
         self._build_ui()
-        self._create_actions()
-        self._create_menu_bar()
-        self._create_toolbars()
-        self._createDockWindow()
-    
+
     def _build_ui(self):
         """
             Build the UI components
@@ -128,14 +129,14 @@ class Window(QMainWindow):
         dock_widget = QDockWidget(str("Dock Widget"), self)
         dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
                                            Qt.RightDockWidgetArea)
-        
+
         layout = QVBoxLayout()
         #layout.addWidget(QLabel("font size"))
         edit_box = QLineEdit()
         edit_box.setPlaceholderText("Number of runs")
         edit_box.setValidator( QIntValidator(1,100000) )
         layout.addWidget(edit_box)
-       
+
         run_button = QPushButton("Run")
         run_button.clicked.connect(self.run_rover_main)
         layout.addWidget(run_button)
@@ -165,18 +166,16 @@ class Window(QMainWindow):
         self.about_action = QAction("&About", self)
 
         # rover actions
-        #self.connect_action = QAction("&Connect To Rover",self)
+        self.connect_action = QAction("&Connect To Rover",self)
         #self.connect_action.triggered.connect(self.dummy_function)
 
         # Create Toolbars
-        # Using a title
-        fileToolBar = self.addToolBar("File")
         # Using a QToolBar object
         edit_tool_bar = QToolBar("Edit", self)
         self.addToolBar(edit_tool_bar)
         # Using a QToolBar object and a toolbar area
-        helpToolBar = QToolBar("Help", self)
-        self.addToolBar(Qt.LeftToolBarArea, helpToolBar)
+        help_tool_bar = QToolBar("Help", self)
+        self.addToolBar(Qt.LeftToolBarArea, help_tool_bar)
         self.font_size_spin_box = QSpinBox()
         self.font_size_spin_box.setFocusPolicy(Qt.NoFocus)
         label = QLabel("font size")
@@ -194,22 +193,26 @@ class Window(QMainWindow):
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
         # Creating menus using a title
-        editMenu = menu_bar.addMenu("&Edit")
-        helpMenu = menu_bar.addMenu("&Help")
-        
+        #edit_menu = menu_bar.addMenu("&Edit")
+        #help_menu = menu_bar.addMenu("&Help")
+
     def open_load_environment_dialog(self):
         """
             Open interaction dialog to open a new environment png file
         """
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        file_name, _ = QFileDialog.getOpenFileName(self, "Select Environment Image File", "","All Files (*)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, 
+            "Select Environment Image File", "","All Files (*)", options=options)
         if file_name:
             self.load_environment(file_name)
 
     def add_grid(self, environment):
+        """
+            Add a Grid for the given Environment
+        """
         self.grid = Grid(environment)
-        self.setcentral_widget(self.grid)
+        self.setCentralWidget(self.grid)
     
     def load_environment(self, image_filename):
         """
@@ -241,21 +244,21 @@ class Window(QMainWindow):
         # Bunch of stuff I no understand
         mean_power = 50.01724137931034
         stdev = 0.8806615716635956
-        tst = [(mean_power + numpy.random.normal(0, stdev), -mean_power + numpy.random.normal(0, stdev)) for _ in range(28)]
+        tst = [(mean_power + numpy.random.normal(0, stdev), 
+                -mean_power + numpy.random.normal(0, stdev)) for _ in range(28)]
         max_speed = 1
         speeds = [(x[0] /100 * max_speed, -x[1] / 100 * max_speed) for x in tst]
         rover_cmds = [(RoverCommandType.RPMS, x, 0.1) for x in speeds]
-        for cmd_type, value, t in rover_cmds:
-            rover_command.add_command(cmd_type, value, t)
+        for cmd_type, value, time in rover_cmds:
+            rover_command.add_command(cmd_type, value, time)
 
         # Get rover commands to send to physical rover
         path = self.environment.get_path()
         rover_commands = create_rover_instructions_from_path(path, rover.get_direction())
         formatted_instructs = rover_instructions_to_json(rover_commands)
 
-        print("Outputting to JSON")
-        import json
-        json.dump(formatted_instructs, open("test.json", "w"))
+        print("Formatted JSON Instructions:")
+        print(formatted_instructs)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
