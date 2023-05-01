@@ -3,7 +3,7 @@
 """
 import math
 import clrprint
-from protocol import MoveInstruction, RotateInstruction
+from spike_com.host_files.protocol import MoveInstruction, RotateInstruction
 
 static = {"WHEEL_RADIUS": 4.3, "R": 13.5/9}#6.25/4.3}
 var = {"speed": 50}
