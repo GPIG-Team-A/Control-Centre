@@ -3,10 +3,10 @@
 """
 import sys
 import numpy
-from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu,QFileDialog, QToolBar, QSpinBox, \
-    QAction, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton
+    QAction, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton, QMessageBox
 from PyQt5.QtGui import QIntValidator, QPainter
 from digital_twin.rover import Rover
 from digital_twin import constants
@@ -15,6 +15,7 @@ from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path,\
     rover_instructions_to_json, RoverCommandType
 from digital_twin.environment_interface import image_to_environment
+from spike_com.spike import SpikeHandler
 
 # Constants
 SCREEN_WIDTH = 1000
@@ -108,12 +109,15 @@ class Grid(QWidget):
 class Window(QMainWindow):
     """Main Window."""
 
+    update_rover_status = pyqtSignal(bool)
+
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
  
         self.environment = None
         self.grid = None
+        self.spike_handler = SpikeHandler()
         self.setWindowTitle("Python Menus & Toolbars")
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.central_widget = QLabel("Load an Environment: File -> Open")
@@ -167,7 +171,7 @@ class Window(QMainWindow):
 
         # rover actions
         self.connect_action = QAction("&Connect To Rover",self)
-        #self.connect_action.triggered.connect(self.dummy_function)
+        self.connect_action.triggered.connect(self._connect_to_rover)
 
         # Create Toolbars
         # Using a QToolBar object
@@ -181,6 +185,9 @@ class Window(QMainWindow):
         label = QLabel("font size")
         edit_tool_bar.addWidget(label)
         edit_tool_bar.addWidget(self.font_size_spin_box)
+
+        self.rover_status_label = QLabel("Rover Status: Offline")
+        edit_tool_bar.addWidget(self.rover_status_label)
 
         # Create Menu Bars
         menu_bar = self.menuBar()
@@ -228,6 +235,32 @@ class Window(QMainWindow):
 
         # Load the grid UI
         self.add_grid(self.environment)
+    
+    def _show_message_box(self, icon, title, text):
+        """
+            Show message box with given icon, title, and text
+        """
+        msg = QMessageBox()
+        msg.setIcon(icon)
+        msg.setText(title)
+        msg.setWindowTitle(text)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+    
+    def _connect_to_rover(self):
+        """
+            Attempt to connect to rover and update the UI
+        """
+        def _signal_callback(connected):
+            if connected:
+                self._show_message_box(QMessageBox.Information, "Connected!", "Connected to Rover")
+            else:
+                self._show_message_box(QMessageBox.Warning, "Failed!", "Failed to Connect to Rover")
+            self.rover_status_label.setText(f"Rover Status: {'Online' if connected else 'Offline'}")
+        self.rover_status_label.setText(f"Rover Status: Connecting...")
+        self.update_rover_status.connect(_signal_callback)
+        self.spike_handler.connect(lambda x: self.update_rover_status.emit(x))
+        
 
     def run_rover_main(self):
         """
@@ -257,8 +290,9 @@ class Window(QMainWindow):
         rover_commands = create_rover_instructions_from_path(path, rover.get_direction())
         formatted_instructs = rover_instructions_to_json(rover_commands)
 
-        print("Formatted JSON Instructions:")
-        print(formatted_instructs)
+        print("Sending instructions...")
+        self.spike_handler.send_instructions(formatted_instructs)
+        self._show_message_box(QMessageBox.Information, "Instructions Sent", "Instructions Sent!")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
