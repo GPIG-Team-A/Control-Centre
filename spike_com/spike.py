@@ -84,11 +84,13 @@ class SpikeHandler:
         """
             Get the logs off the Rover
         """
+        self._bind()
         try:
             log = subprocess.check_output(["sudo", "ampy", "--port", "/dev/rfcomm0", "get",
                             f"{REMOTE_DIRECTORY}/log.txt"], universal_newlines=True)
         except subprocess.CalledProcessError:
             return False
+        self.disconnect()
         return str(log)
 
     def update_rover_files(self):
@@ -112,6 +114,7 @@ class SpikeHandler:
                 check=False)
             time.sleep(1)
         print("Update complete")
+        self.disconnect()
 
     def disconnect(self):
         """

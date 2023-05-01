@@ -49,7 +49,7 @@ def do_safe_move(instruction):
     #for i in range(20):
     WHEEL_PAIR.run_for_degrees(
         instruction.left_motor_degrees,
-        speed=20
+        speed=(instruction.left_motor_speed, instruction.right_motor_speed)
     )
     #   time.sleep(0.1)
 
