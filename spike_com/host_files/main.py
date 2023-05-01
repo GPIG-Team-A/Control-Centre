@@ -1,7 +1,6 @@
 """
     Entry-Point of the Spike Host
 """
-import json
 import time
 import clrprint
 from spike_com.host_files.protocol import Directions, Ping, DistanceSend
@@ -117,13 +116,3 @@ class Handler:
             elapsed += 1
         print("Connection is established.")
         return self.communication_handler
-
-
-def main(args):
-    """
-        Main function called when communication begins
-    """
-    handler = Handler()
-    communication_handler = handler.start()
-
-    get_from_json(file_name=args[0], verbose=True, handler=communication_handler)

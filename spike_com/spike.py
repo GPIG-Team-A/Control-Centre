@@ -6,8 +6,8 @@ import sys
 import subprocess
 import os
 import time
-from spike_com.host_files.main import Handler
 from threading import Thread
+from spike_com.host_files.main import Handler
 
 # CONSTANTS
 MAC = "30:E2:83:03:7C:71"
@@ -37,7 +37,7 @@ class SpikeHandler:
                 print("[Spike-Com] Error unable to bind: ", error)
                 self.disconnect()
                 callback_function(False)
-                return False
+                return
             print("[Spike-Com] Connected!")
 
             # Try to run the hub file
@@ -48,7 +48,7 @@ class SpikeHandler:
                 print("[Spike-Com] Error unable to bind: ", error)
                 self.disconnect()
                 callback_function(False)
-                return False
+                return
 
             time.sleep(5)
 
@@ -56,17 +56,17 @@ class SpikeHandler:
             try:
                 self.communication_handler = Handler()
                 self.communication_handler.start()
-            except Exception as error:
+            except Exception as error: # pylint: disable=W0718
                 print("[Spike-Com] Error unable to start communication: ", error)
                 self.disconnect()
                 callback_function(False)
-                return False
+                return
             if not self.communication_handler.connected:
                 self.disconnect()
-
             callback_function(self.communication_handler.connected)
-        self.thread = Thread(target=_connect)
-        self.thread.start()
+
+        thread = Thread(target=_connect)
+        thread.start()
     
     def send_instructions(self, instructions):
         """
@@ -74,8 +74,8 @@ class SpikeHandler:
         """
         def _send_instructions():
             self.communication_handler.send_instructions(instructions)
-        self.thread = Thread(target=_send_instructions)
-        self.thread.start()
+        thread = Thread(target=_send_instructions)
+        thread.start()
     
     def disconnect(self):
         """

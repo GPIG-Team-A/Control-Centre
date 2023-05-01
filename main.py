@@ -257,9 +257,9 @@ class Window(QMainWindow):
             else:
                 self._show_message_box(QMessageBox.Warning, "Failed!", "Failed to Connect to Rover")
             self.rover_status_label.setText(f"Rover Status: {'Online' if connected else 'Offline'}")
-        self.rover_status_label.setText(f"Rover Status: Connecting...")
+        self.rover_status_label.setText("Rover Status: Connecting...")
         self.update_rover_status.connect(_signal_callback)
-        self.spike_handler.connect(lambda x: self.update_rover_status.emit(x))
+        self.spike_handler.connect(self.update_rover_status.emit)
         
 
     def run_rover_main(self):
