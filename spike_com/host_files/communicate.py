@@ -5,7 +5,7 @@
 import time
 import threading
 import serial
-from protocol import Packet, class_by_code
+from spike_com.host_files.protocol import Packet, class_by_code
 
 class CommunicationHandler:
     """
@@ -62,7 +62,7 @@ class CommunicationHandler:
         with self.lock:
             try:
                 raw = self.socket.read_until()
-            except TimeoutError:
+            except serial.SerialException:
                 raw = None
         return raw
 

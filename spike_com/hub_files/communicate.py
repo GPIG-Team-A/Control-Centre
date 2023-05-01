@@ -55,7 +55,6 @@ class CommunicationHandler:
             raw = hub.BT_VCP().read()
         except:
             return None
-        log("Received raw bytes: " + str(raw))
         return raw
 
     async def _recv_loop(self):
