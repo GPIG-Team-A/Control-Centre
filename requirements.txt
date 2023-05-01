@@ -1,7 +1,10 @@
 autopep8==2.0.2
+certifi==2022.12.7
+charset-normalizer==3.1.0
 clrprint==2.0.1
 colorama==0.4.6
 future==0.18.3
+idna==3.4
 imageio==2.28.0
 iso8601==1.1.0
 numpy==1.24.3
@@ -16,5 +19,7 @@ PyQt6-sip==13.5.1
 pyqtgraph==0.13.3
 pyserial==3.5
 PyYAML==6.0
+requests==2.29.0
 termcolor==2.3.0
 tomli==2.0.1
+urllib3==1.26.15
