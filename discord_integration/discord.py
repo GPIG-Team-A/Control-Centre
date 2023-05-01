@@ -5,6 +5,7 @@
 
 """
 import os
+import time
 import requests
 
 DATUM_CHANNEL_WEBHOOK = os.environ.get("CONTROL_CENTRE_DATUM_WEBHOOK")
@@ -13,22 +14,24 @@ def upload_log_file(log_text):
     """
         Upload log file to discord
     """
-    data = {
-        "content" : f"I have the following log to report :salute:!```{log_text}```",
-        "username" : "Log Dumper"
-        #"embeds" : [
-        #    {
-        #        "description": f"{log_text}",
-        #        "title": "Log Output"
-        #    }
-        #]
-    }
+    def _send(text):
+        data = {
+            "content" : text,
+            "username" : "Wallace"
+        }
+        result = requests.post(DATUM_CHANNEL_WEBHOOK, json = data, timeout=3)
+        try:
+            result.raise_for_status()
+        except requests.exceptions.HTTPError:
+            return
 
-    print(DATUM_CHANNEL_WEBHOOK)
-    result = requests.post(DATUM_CHANNEL_WEBHOOK, json = data, timeout=3)
-    try:
-        result.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        print(err)
-        return False
+    # Split log into 15_000 character chunks
+    log_chunks = [log_text[i:i+1_900] for i in range(0, len(log_text), 1_900)]
+
+    _send(f"I have the following log to report :saluting_face:\
+        ({len(log_text)} characters total, {len(log_chunks)} chunks):")
+
+    for chunk in log_chunks:
+        time.sleep(1)
+        _send(f"```{chunk}```")
     return True
