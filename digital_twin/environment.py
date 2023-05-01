@@ -3,10 +3,7 @@ Handles the environment the rover will operate in
 """
 
 import enum
-
 import numpy as np
-import pygame
-from pygame.locals import QUIT
 
 from digital_twin.rover import Rover
 from digital_twin.constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
@@ -569,42 +566,3 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
     print("PATH FINDING COMPLETE")
 
     return path
-
-
-def setup_gui() -> pygame.Surface:
-    """
-    Sets up the environment GUI
-
-    :return: The environment GUI
-    """
-
-    pygame.init()
-
-    return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-
-def run(display: pygame.surface, environment: Environment):
-    """
-    Runs the environment GUI's loop
-
-    :param display: The environment GUI
-    :param environment: The environment being displayed
-    """
-
-    # Runs until the GUI is closed
-    is_running = True
-    while is_running:
-        # Updates the environment onto the GUI
-        update(display, environment)
-
-        # Updates any changes the GUI to the display
-        pygame.display.update()
-
-        # Checks if the user closes the GUI
-        # If so, then the GUI and its related processes are terminated
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                is_running = False
-
-
