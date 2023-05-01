@@ -1,8 +1,7 @@
 """
 The simulated rover class
 """
-
-
+import numpy.random
 from digital_twin import rover_rpm_instructions
 from digital_twin.constants import TIME_BETWEEN_MOVEMENTS
 from digital_twin.maths_helper import convert_angle_to_2d_vector
@@ -48,11 +47,13 @@ class Rover:
 
     """
 
-    def __init__(self, x: int = 0, y: int = 0, direction: float = 0):
+    def __init__(self, x: int = 0, y: int = 0, direction: float = 0, motor_stdev=0):
         """
         :param x: The starting x position of the rover in meters
         :param y: The starting y position of the rover in meters
         :param direction: The starting angular direction of the rover in radians
+        :param motor_stdev: The standard deviation of the motors speed's values,
+                            if 0 then randomness is disabled
         """
         self._x: int = x
         """ The x coordinate of the rover within the environment """
@@ -64,6 +65,23 @@ class Rover:
             This is the angle between the direction line and the x-axis
         """
 
+        self.motor_stdev = motor_stdev
+
+    def set_position(self, position):
+        """
+        Sets the position of the rover
+        :param position: (x, y) coordinates
+        """
+        self._x, self._y = position
+
+    def set_angle(self, angle):
+        """
+        Sets the rotation angle of the rover
+
+        :param angle: The angle in radians
+        """
+        self._direction = angle
+
     def motor_move(self, motor1_speed: float, motor2_speed: float,
                    time: float = TIME_BETWEEN_MOVEMENTS):
         """
@@ -74,26 +92,21 @@ class Rover:
         :param time: The time the speeds are acting for
         """
 
-        angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed, motor2_speed)
+        motor1_speed_adj = motor1_speed
+        motor2_speed_adj = motor2_speed
+
+        if self.motor_stdev > 0:
+            motor1_randomness = numpy.random.normal(0, self.motor_stdev)
+            motor2_randomness = numpy.random.normal(0, self.motor_stdev)
+
+            motor1_speed_adj += motor1_randomness
+            motor2_speed_adj += motor2_randomness
+
+        angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed_adj,
+                                                                     motor2_speed_adj)
         distance = (motor1_speed + motor2_speed) * time
 
-        self.rotate(angle_change)
-        self.move(distance)
-
-    def rotate(self, angle: float):
-        """
-        Rotates the rover by a certain angle
-
-        :param angle: The relative angle to rotate by, in radians
-        """
-        self._direction += angle
-
-    def move(self, distance: float):
-        """
-        Moves the rover the given distance
-
-        :param distance the rover will move
-        """
+        self._direction += angle_change
 
         # Gets the direction unit vector
         dx, dy = convert_angle_to_2d_vector(self._direction)
@@ -101,6 +114,27 @@ class Rover:
         # Applies the direction with the distance to change the location
         self._x += distance * dx
         self._y += distance * dy
+
+    def rotate(self, angle: float):
+        """
+        Rotates the rover by a certain angle
+
+        :param angle: The relative angle to rotate by, in radians
+        """
+        abs_motor_speeds = rover_rpm_instructions.\
+            get_rpm_for_still_rotation(angle, TIME_BETWEEN_MOVEMENTS)
+
+        self.motor_move(abs_motor_speeds, -abs_motor_speeds)
+
+    def move(self, distance: float):
+        """
+        Moves the rover the given distance
+
+        :param distance the rover will move
+        """
+        motor_speed = (distance / TIME_BETWEEN_MOVEMENTS) / 2
+
+        self.motor_move(motor_speed, motor_speed)
 
     def get_location(self) -> tuple[float]:
         """
