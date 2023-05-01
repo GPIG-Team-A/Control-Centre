@@ -8,20 +8,6 @@ import numpy as np
 from digital_twin.rover import Rover
 from digital_twin.constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
 
-SCREEN_WIDTH = 1000
-""" The width of the GUI in pixels"""
-SCREEN_HEIGHT = 900
-""" The height of the GUI in pixels """
-
-TILE_START_X = 10
-""" The starting x coordinate of the tile map """
-TILE_START_Y = 10
-""" The starting y coordinate of the tile map """
-TILE_WIDTH = 20
-""" The width of each tile in pixels """
-TILE_HEIGHT = 20
-""" The height of each tile in pixels """
-
 
 class EnvType(enum.Enum):
     """ A user-friendly description of the contents of the environment
