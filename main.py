@@ -16,6 +16,7 @@ from digital_twin.rover_commands import create_rover_instructions_from_path,\
     rover_instructions_to_json, RoverCommandType
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
+from discord_integration.discord import upload_log_file
 
 # Constants
 SCREEN_WIDTH = 1000
@@ -125,6 +126,13 @@ class Window(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self._build_ui()
 
+    def closeEvent(self, _): # pylint: disable=C0103
+        """
+            Called when window closes
+        """
+        # Disconnect our spike handler
+        self.spike_handler.disconnect()
+
     def _build_ui(self):
         """
             Build the UI components
@@ -135,7 +143,6 @@ class Window(QMainWindow):
                                            Qt.RightDockWidgetArea)
 
         layout = QVBoxLayout()
-        #layout.addWidget(QLabel("font size"))
         edit_box = QLineEdit()
         edit_box.setPlaceholderText("Number of runs")
         edit_box.setValidator( QIntValidator(1,100000) )
@@ -153,21 +160,11 @@ class Window(QMainWindow):
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock_widget)
 
-        # Create Actions
-        # Creating action using the first constructor
         self.new_action = QAction(self)
-        self.new_action.setText("&New")
-
-        # Creating actions using the second constructor
         self.open_action = QAction("&Open...", self)
         self.open_action.triggered.connect(self.open_load_environment_dialog)
         self.save_action = QAction("&Save", self)
         self.exit_action = QAction("&Exit", self)
-        self.copy_action = QAction("&Copy", self)
-        self.paste_action = QAction("&Paste", self)
-        self.cut_action = QAction("&Cut", self)
-        self.help_content_action = QAction("&Help Content", self)
-        self.about_action = QAction("&About", self)
 
         # rover actions
         self.connect_action = QAction("&Connect To Rover",self)
@@ -200,8 +197,24 @@ class Window(QMainWindow):
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
         # Creating menus using a title
-        #edit_menu = menu_bar.addMenu("&Edit")
+        edit_menu = menu_bar.addMenu("&Edit")
+        self.log_dump_action = QAction("&Log Dump", self)
+        self.log_dump_action.triggered.connect(self.log_dump)
+        edit_menu.addAction(self.log_dump_action)
         #help_menu = menu_bar.addMenu("&Help")
+    
+    def log_dump(self):
+        """
+            Dump rover logs
+        """
+        if not self.spike_handler.connected:
+            self._show_message_box(QMessageBox.Warning, "Not Connected!",
+                "You're not connected to the rover")
+        else:
+            log = self.spike_handler.get_log()
+            if log:
+                upload_log_file(log)
+                print("Uploading log file...")
 
     def open_load_environment_dialog(self):
         """

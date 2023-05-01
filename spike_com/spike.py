@@ -63,6 +63,8 @@ class SpikeHandler:
                 return
             if not self.communication_handler.connected:
                 self.disconnect()
+            else:
+                self.connected = True
             callback_function(self.communication_handler.connected)
 
         thread = Thread(target=_connect)
@@ -77,6 +79,17 @@ class SpikeHandler:
         thread = Thread(target=_send_instructions)
         thread.start()
     
+    def get_log(self):
+        """
+            Get the logs off the Rover
+        """
+        try:
+            log = subprocess.check_output(["sudo", "ampy", "--port", "/dev/rfcomm0", "get",
+                            f"{REMOTE_DIRECTORY}/log.txt"], universal_newlines=True)
+        except subprocess.CalledProcessError:
+            return False
+        return str(log)
+
     def disconnect(self):
         """
             Disconnect from Hub
