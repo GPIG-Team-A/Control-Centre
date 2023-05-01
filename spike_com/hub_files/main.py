@@ -16,6 +16,7 @@ from motor import Motor
 from motor_pair import MotorPair
 from sensor import Ultrasonic
 from gyrosensor import GyroSensor
+from light_sensor import LightSensor, Colour
 import log
 
 LEFT_WHEEL = Motor("A")
@@ -23,7 +24,13 @@ RIGHT_WHEEL = Motor("B", inverted=True)
 WHEEL_PAIR = MotorPair(LEFT_WHEEL, RIGHT_WHEEL)
 DISTANCE_SENSOR = Ultrasonic("E")
 GYROSENSOR = GyroSensor()
+LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
+
+
+def play_sound(sound_file):
+    hub.sound.play(sound_file)
+    time.sleep(1)
 
 
 async def on_ping(handler, data):
@@ -75,6 +82,18 @@ def do_safe_move(instruction):
         recorded_yaws.append(current_yaw)
         recorded_power.append((LEFT_WHEEL.get_current_power(), RIGHT_WHEEL.get_current_power()))
         recorded_rotations.append((LEFT_WHEEL.get_rotation(), RIGHT_WHEEL.get_rotation()))
+
+        # Check interrupts
+        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.BLACK:
+            log.log("INTERRUPT: Registered black on bottom sensor... stopping")
+            WHEEL_PAIR.stop()
+            play_sound("/sounds/scream.raw")
+            return False
+        if LIGHT_SENSOR_BOTTOM.get_reflecton() <= 2:
+            log.log("INTERRUPT: Registered no reflection... stopping")
+            WHEEL_PAIR.stop()
+            play_sound("/sounds/scream.raw")
+            return False
 
         if CORRECTION_SYSTEM_ENABLED and abs(current_yaw - directional_yaw) > tolerance:
             log.log("Incorrect yaw detected... correcting")
@@ -160,6 +179,7 @@ def do_safe_move(instruction):
     log.log("RPM Values:" + str(calculated_rpm))
     log.log("Move Time:" + str(len(recorded_power) / 10))
     log.log("#######SAFE MOVE DIGEST########")
+    return True
 
 
 async def on_new_directions(handler, directions):
@@ -168,10 +188,12 @@ async def on_new_directions(handler, directions):
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                do_safe_move(instruction)
+                complete = do_safe_move(instruction)
             except Exception as e:
                 log.log(str(e))
             log.log("Finished move instruction")
+            if not complete:
+                break
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)
