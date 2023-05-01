@@ -1,8 +1,6 @@
 """
     Main module for running Spike-Com
 """
-import argparse
-import sys
 import subprocess
 import os
 import time

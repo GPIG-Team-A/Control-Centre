@@ -210,7 +210,8 @@ class Window(QMainWindow):
             Update rover files
         """
         self.spike_handler.update_rover_files()
-        self._show_message_box(QMessageBox.Information, "Updated!", "Check logs for complete output")
+        self._show_message_box(QMessageBox.Information, "Updated!", 
+                               "Check logs for complete output")
     
     def log_dump(self):
         """
