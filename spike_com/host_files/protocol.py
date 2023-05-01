@@ -13,18 +13,18 @@ class Packet:
 
     def _encapsulate(self, payload):
         return struct.pack("!b", self.code) + payload
-    
+
     def pack(self):
         """ Requires overwrite """
         return b''
-    
+
     @staticmethod
     def decapsulate(data):
         """
             Decapsulate the packet into just the payload
         """
         return data[1:]
-    
+
     @staticmethod
     def get_code(data):
         """
@@ -39,10 +39,10 @@ class Ping(Packet):
 
     def __init__(self):
         super().__init__(self.CODE)
-    
+
     def pack(self):
         return self._encapsulate(b'')
-    
+
     @staticmethod
     def unpack(_):
         """
@@ -111,7 +111,7 @@ class MoveInstruction(Packet):
         self.left_motor_degrees = abs(int(left_motor_degrees))
         self.right_motor_speed = int(right_motor_speed) * (-1 if right_motor_degrees < 0 else 1)
         self.right_motor_degrees = abs(int(right_motor_degrees))
-        
+
 
     def pack(self):
         payload = struct.pack("!hhhh",
@@ -120,7 +120,7 @@ class MoveInstruction(Packet):
             self.right_motor_degrees,
             self.right_motor_speed)
         return self._encapsulate(payload)
-    
+
     @staticmethod
     def unpack(data):
         """
@@ -187,7 +187,7 @@ class Directions(Packet):
         else:
             self.instructions = instructions
         self.timeout = timeout
-    
+
     def add_instruction(self, instruction):
         """
             Add an instruction to the list of instructions
@@ -211,7 +211,7 @@ class Directions(Packet):
             # Append the instruction
             payload += packed_instruction
         return self._encapsulate(bytes(payload))
-        
+
     @staticmethod
     def unpack(data):
         """
@@ -230,7 +230,7 @@ class Directions(Packet):
             instruction_size, = struct.unpack("!B", payload[current_index:current_index+1])
             current_index += 1
             # Now read the actual instruction
-            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s", 
+            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s",
                 payload[current_index:current_index + instruction_size])
             current_index += instruction_size
             # Now get the code of this instruction
