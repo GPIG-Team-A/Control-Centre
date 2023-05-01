@@ -24,10 +24,20 @@ class RoverCommandType(Enum):
     """ Command for the rover to rotate a certain angle """
     RPMS = 2
     """ Command to run certain speeds on the motors for a certain time """
+    SET_POSITION = 3
+    """ Command to set the position of the rover """
+    SET_ANGLE = 4
+    """ 
+    Command to set the angle of the rover 
+    MUST BE SET AS SINGLE ELEMENT TUPLE
+    """
 
 
-ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE, RoverCommandType.ROTATE,
-                                       RoverCommandType.RPMS]
+ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE,
+                                       RoverCommandType.ROTATE,
+                                       RoverCommandType.RPMS,
+                                       RoverCommandType.SET_POSITION,
+                                       RoverCommandType.SET_ANGLE]
 
 
 class RoverCommands:
@@ -74,13 +84,15 @@ class RoverCommands:
         self._current_command: tuple[float] = None
         """ The current command being applied to the rover """
 
-    def add_command(self, command_type: RoverCommandType, value: float, time: float):
+    def add_command(self, command_type: RoverCommandType,
+                    value: float, time: float, is_printing: bool = True):
         """
         Adds a command to the queue
 
         :param command_type: The type of command being ran
         :param value: The value specific to the command type
         :param time: The time the command will run for
+        :param is_printing: If true the current command is printed to the console
         """
         val = value
 
@@ -88,16 +100,19 @@ class RoverCommands:
             val = value * constants.TIME_BETWEEN_MOVEMENTS / time
 
         self._command_queue.put((float(command_type.value), val, time))
-        print(f"COMMAND ADDED: {(command_type, value, time)}")
 
-    def update(self, rover: Rover):
+        if is_printing:
+            print(f"COMMAND ADDED: {(command_type, value, time)}")
+
+    def update(self, rover: Rover, is_printing: bool = True):
         """
         Applies the commands to the rover
 
+        :param is_printing: If true the current command is printed to the console
         :param rover: The rover the commands are run on
         """
         # Ensures the current command is current
-        self._check_command()
+        self._check_command(is_printing)
 
         # Ensures there is a current command
         if self._current_command is not None:
@@ -112,13 +127,21 @@ class RoverCommands:
             elif command_type == RoverCommandType.RPMS:
                 motor1_speed, motor2_speed = value
                 rover.motor_move(motor1_speed, motor2_speed)
+            elif command_type == RoverCommandType.SET_POSITION:
+                rover.set_position(value)
+            elif command_type == RoverCommandType.SET_ANGLE:
+                rover.set_angle(value[0])
 
             # Updates the time remaining of the current command
             self._current_command = (command_type.value, value, time_units_left -
                                      constants.TIME_BETWEEN_MOVEMENTS)
 
-    def _check_command(self):
-        """ Ensures that the current command is valid, updating if not """
+    def _check_command(self, is_printing: bool = True):
+        """
+        Ensures that the current command is valid, updating if not
+
+        :param is_printing: If true the current command is printed to the console
+        """
 
         # Current command cannot be None, and the time remaining must not be above 0
         if self._current_command is None or self._current_command[2] <= 0:
@@ -137,11 +160,12 @@ class RoverCommands:
                     if ROVER_TYPES[int(self._current_command[0])] == RoverCommandType.ROTATE:
                         value *= 360 / (2 * np.pi)
 
-                # Sends command information to the console
-                print("COMMAND RUN:")
-                print(f"Command Type: {ROVER_TYPES[int(self._current_command[0])].name}")
-                print(f"Value       : {value}")
-                print(f"TIME        : {int(self._current_command[2] * 1000) / 1000}s")
+                if is_printing:
+                    # Sends command information to the console
+                    print("COMMAND RUN:")
+                    print(f"Command Type: {ROVER_TYPES[int(self._current_command[0])].name}")
+                    print(f"Value       : {value}")
+                    print(f"TIME        : {int(self._current_command[2] * 1000) / 1000}s")
 
 
 def save_rover_instructions_as_json(instructions: list[tuple[float]]):
