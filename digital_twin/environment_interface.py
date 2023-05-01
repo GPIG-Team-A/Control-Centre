@@ -22,22 +22,20 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     width_tiles = int(ceil(width / METERS_PER_TILE))
     height_tiles = int(ceil(height / METERS_PER_TILE))
 
-    env = Environment(width_tiles, height_tiles)
+    env = Environment(width_tiles + 2, height_tiles + 2)
 
     img = Image.open(image_filename, 'r')
 
-    width_pixels_per_tile = int(ceil(img.size[0] / width_tiles))
-    height_pixels_per_tile = int(ceil(img.size[1] / height_tiles))
+    width_pixels_per_tile = int(ceil(img.size[0] / (width_tiles - 2)))
+    height_pixels_per_tile = int(ceil(img.size[1] / (height_tiles - 2)))
 
     start = None
     end = None
 
-    for y in range(height_tiles):
-        if (y + 1) * height_pixels_per_tile > img.size[1]:
-            continue
-
-        for x in range(width_tiles):
-            if (x + 1) * width_pixels_per_tile > img.size[0]:
+    for y in range(1, height_tiles - 1):
+        for x in range(1, width_tiles - 1):
+            if (x + 1) * width_pixels_per_tile > img.size[0] \
+                    or (y + 1) * height_pixels_per_tile > img.size[1]:
                 continue
 
             color_list = []
@@ -69,6 +67,14 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
 
             if env_type is not None:
                 env.set_tile(x, y, env_type)
+
+    for x in range(width_tiles + 2):
+        env.set_tile(x, 0, EnvType.OBSTACLE)
+        env.set_tile(x, height_tiles + 1, EnvType.OBSTACLE)
+
+    for y in range(height_tiles + 2):
+        env.set_tile(0, y, EnvType.OBSTACLE)
+        env.set_tile(width_tiles + 1, y, EnvType.OBSTACLE)
 
     env.set_start_end(start, end)
 

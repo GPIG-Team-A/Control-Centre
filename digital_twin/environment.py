@@ -217,8 +217,12 @@ class Environment:
                 self.set_tile(pos[0], pos[1], EnvType.OBSTACLE)
                 assigned += 1
 
-    def get_path(self) -> list[tuple[int]]:
+    def get_path(self, width_val: float = DISTANCE_BETWEEN_MOTORS,
+                 should_generate: bool = True) -> list[tuple[int]]:
         """
+        :param width_val: The width of the line of sight
+        :param should_generate: True if the user wants to generate a path if one
+                                doesn't currently exist
         :return: The path between the start and end nodes that can be reached
         without traversing any obstacles
         """
@@ -228,11 +232,15 @@ class Environment:
             return []
 
         # If there is no cached path then a new path is created using Theta*
-        if self._path is None:
-            self._path = pathfind(self, self._start, self._end)
+        if should_generate and self._path is None:
+            self._path = pathfind(self, self._start, self._end, width_val)
 
         # Returns the cached path
         return self._path
+
+    def reset_path(self):
+        """ Resets the current path so a new one can be generated """
+        self._path = None
 
 
 def _cost(traversal_costs: list[list[float]], point_1: tuple[int], point_2: tuple[int]) \
@@ -325,22 +333,34 @@ def get_intersected_coordinates(point_1: tuple[float], point_2: tuple[float]) \
     y_min = int(np.floor(np.min([point_1[1], point_2[1]])))
     y_max = int(np.floor(np.max([point_1[1], point_2[1]])))
 
-    return [(x, int(f_y(point_1, point_2, x))) for x in range(x_min, x_max)] \
-           + [(int(f_x(point_1, point_2, y)), y) for y in range(y_min, y_max)]
+    return [(x, int(f_y(point_1, point_2, x)))
+            for x in range(x_min, x_max)] \
+           + [(int(f_x(point_1, point_2, y)), y)
+              for y in range(y_min, y_max)]
 
 
-def _is_line_of_sight(env: Environment, point_1: tuple[int], point_2: tuple[int]) -> bool:
+def _is_line_of_sight(env: Environment, point_1: tuple[int],
+                      point_2: tuple[int], width_val) -> bool:
+    """
+    Checks if there is a line of sight between two points
+
+    :param env: The environment the points are in
+    :param point_1: (x, y) coordinates of the first point
+    :param point_2: (x, y) coordinates of the second point
+    :param width_val: The width of the checking line between the 2 points
+    :return: True if there are no obstacles between the two given points
+    """
     dir_vector = [point_2[0] - point_1[0], point_2[1] - point_1[1]]
     magnitude = np.sqrt(dir_vector[0] * dir_vector[0] + dir_vector[1] * dir_vector[1])
 
     dir_vector[0] = dir_vector[0] / magnitude
     dir_vector[1] = dir_vector[1] / magnitude
 
-    dist = DISTANCE_BETWEEN_MOTORS / METERS_PER_TILE
+    dist = width_val / METERS_PER_TILE
 
     perpendicular_vector = [dir_vector[1], -dir_vector[0]]
 
-    rays_cast = 3
+    rays_cast = 11
 
     start_point = [point_1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
                    point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
@@ -349,13 +369,13 @@ def _is_line_of_sight(env: Environment, point_1: tuple[int], point_2: tuple[int]
                  point_2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
     for ray in range(rays_cast):
-        start_point = (start_point[0] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[0],
-                       start_point[1] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[1])
+        s_p = (start_point[0] + dist * (ray / (rays_cast - 1)) * perpendicular_vector[0],
+               start_point[1] + dist * (ray / (rays_cast - 1)) * perpendicular_vector[1])
 
-        end_point = (end_point[0] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[0],
-                     end_point[1] + ray * (dist / (rays_cast - 1)) * perpendicular_vector[1])
+        e_p = (end_point[0] + dist * (ray / (rays_cast - 1)) * perpendicular_vector[0],
+               end_point[1] + dist * (ray / (rays_cast - 1)) * perpendicular_vector[1])
 
-        for x, y in get_intersected_coordinates(start_point, end_point):
+        for x, y in get_intersected_coordinates(s_p, e_p):
             try:
                 if env.get_tile(x, y) == EnvType.OBSTACLE:
                     return False
@@ -409,7 +429,7 @@ def _is_line_of_sight_legacy(env: Environment, point_1: tuple[int], point_2: tup
     #       ' -X, _ _ _ ,  '
 
     start_point = [point_1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                  point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+                   point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
 
     # Sends rays that checks if any of the nodes between the two nodes given are obstacles
     for ray in range(rays_cast):
@@ -431,7 +451,7 @@ def _is_line_of_sight_legacy(env: Environment, point_1: tuple[int], point_2: tup
 
 def _update_vertex(env: Environment, open_nodes_queue: list[tuple[int]],
                    traversal_costs: list[list[float]], parent: list[list[tuple[int]]],
-                   point_1: tuple[int], point_2: tuple[int]):
+                   point_1: tuple[int], point_2: tuple[int], width_val: float):
     """
     Updates the node's traversal cost and parent node
 
@@ -441,12 +461,13 @@ def _update_vertex(env: Environment, open_nodes_queue: list[tuple[int]],
     :param parent: The parent matrix of every node
     :param point_1: Node 1
     :param point_2: Node 2
+    :param width_val: The width of the line of sight
     """
     # Gets the parent of node 1
     n_parent = parent[point_1[1]][point_1[0]]
 
-    if _is_line_of_sight(env, point_1, point_2):
-        if _is_line_of_sight(env, n_parent, point_2):
+    if _is_line_of_sight(env, point_1, point_2, width_val):
+        if _is_line_of_sight(env, n_parent, point_2, width_val):
             # If there's a line of sight between n1's parent and n2
 
             # If the cost of the traversal from n1's parent and n2 is smaller
@@ -506,13 +527,15 @@ def _get_neighbours(env: Environment, node: tuple[int]) -> list[tuple[int]]:
     return neighbours
 
 
-def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> list[tuple[int]]:
+def pathfind(environment: Environment, start: tuple[int], end: tuple[int],
+             width_val: float) -> list[tuple[int]]:
     """
     Finds a path between the 2 points given
 
     :param environment: The environment the nodes are in
     :param start: The node where the path will begin
     :param end: The node where the path will end
+    :param width_val: The width of the line of sight
     :return: A list of the nodes from the start to end
     """
     print(f"PATH FINDING BETWEEN {start} and {end}")
@@ -541,7 +564,7 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
             print("PATH FOUND")
             break
 
-        print(f"EXPLORE {node}")
+        # print(f"EXPLORE {node}")
 
         # DEBUGGING ONLY
         # environment.set_tile(node[0], node[1], EnvType.EXPLORED)
@@ -553,9 +576,13 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int]) -> li
         for neighbour in neighbours:
             if neighbour not in close_nodes_list:
                 _update_vertex(environment, open_nodes_queue, traversal_costs,
-                               parent, node, neighbour)
+                               parent, node, neighbour, width_val)
 
     reverse_path = []
+
+    if parent[end[1]][end[0]] is None:
+        print("PATH FINDING FAILED")
+        return []
 
     node = end
     reverse_path.append(node)
@@ -636,17 +663,18 @@ def update(display: pygame.surface, environment: Environment):
             # Draws the tile
             pygame.draw.rect(display, tile_type.value, (pos_x, pos_y, TILE_WIDTH, TILE_HEIGHT))
 
-    path = environment.get_path()
+    path = environment.get_path(should_generate=False)
 
-    for i in range(len(path) - 1):
-        pos_1 = path[i]
-        pos_2 = path[i + 1]
+    if path is not None:
+        for i in range(len(path ) - 1):
+            pos_1 = path[i]
+            pos_2 = path[i + 1]
 
-        pygame.draw.line(display, (0, 0, 0),
-                         (TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2),
-                          TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2)),
-                         (TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2),
-                          TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)), width=2)
+            pygame.draw.line(display, (0, 0, 0),
+                             (TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2),
+                              TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2)),
+                             (TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2),
+                              TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)), width=2)
 
     # Handles the displaying of the rover
     rover = environment.get_rover()

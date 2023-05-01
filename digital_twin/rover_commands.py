@@ -84,6 +84,12 @@ class RoverCommands:
         self._current_command: tuple[float] = None
         """ The current command being applied to the rover """
 
+    def is_empty(self) -> bool:
+        """
+        :return: True if the command queue is empty
+        """
+        return self._command_queue.empty()
+
     def add_command(self, command_type: RoverCommandType,
                     value: float, time: float, is_printing: bool = True):
         """
