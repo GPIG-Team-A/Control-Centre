@@ -32,6 +32,7 @@ TILE_WIDTH = 20
 TILE_HEIGHT = 20
 """ The height of each tile in pixels """
 
+
 class Grid(QWidget):
     """ Visual representation of an environment """
 
