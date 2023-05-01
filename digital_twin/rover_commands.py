@@ -5,8 +5,6 @@ Handles the commands the rover will receive
 
 from enum import Enum
 from queue import Queue
-
-import json
 import numpy as np
 from digital_twin import constants
 from digital_twin.rover import Rover
