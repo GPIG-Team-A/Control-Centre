@@ -1,12 +1,12 @@
 """
     Entry-Point of the Spike Host
 """
-import json
 import time
-from protocol import Directions, Ping, DistanceSend
-from commands import move, rotate, set_variable
 import clrprint
-from communicate import CommunicationHandler
+from spike_com.host_files.protocol import Directions, Ping, DistanceSend
+from spike_com.host_files.commands import move, rotate, set_variable
+from spike_com.host_files.communicate import CommunicationHandler
+
 
 MAC = "30:E2:83:03:7C:71"
 
@@ -22,7 +22,7 @@ class Handler:
         self.communication_handler = None
         self.connected = False
 
-    def on_ping(self, _):
+    def on_ping(self, *_):
         """
             Called when ping is received
         """
@@ -68,6 +68,29 @@ class Handler:
                 if len(args) == arg_count:
                     instructions.add_instruction(comtr[0](args))
                     clrprint.clrprint(f"added {cmd} instruction", clr = 'g')
+    
+    def send_instructions(self, instructions):
+        """
+            Send given instructions
+        """
+        commands = {"MOVE": [move, 1],
+            "ROTATE": [rotate, 1],
+            #"GET": [Commands.get, 0]
+        }
+        directions = Directions()
+        for item in instructions:
+            if item["type"] in commands:
+                command = commands[item["type"]]
+                if command[1] == 1:
+                    directions.add_instruction(command[0]([item["value"]]))
+                elif command[1] == 0:
+                    directions.add_instruction(command[0]([]))
+                else:
+                    clrprint.clrprint(
+                        f"unable to add instruction {item['type']} due to unknown or \
+                            invalid number of values needed",
+                            clr='red')
+        self.communication_handler.send(directions)
 
     def start(self):
         """
@@ -85,48 +108,11 @@ class Handler:
         self.connected = False
         print("ping...")
         self.communication_handler.send(Ping())
+        elapsed = 0
         while not self.connected:
+            if elapsed >= 15:
+                return False
             time.sleep(1)
+            elapsed += 1
         print("Connection is established.")
         return self.communication_handler
-
-def get_from_json(file_name, verbose, handler):
-    """
-        Get commands from a JSON file
-    """
-    commands = {"MOVE": [move, 1],
-                "ROTATE": [rotate, 1],
-                #"GET": [Commands.get, 0]
-                }
-    instructions = Directions()
-    with open(file_name, encoding="utf-8") as file:
-        data = json.load(file)
-        for item in data:
-            if item["type"] in commands:
-                command = commands[item["type"]]
-                if command[1] == 1:
-                    instructions.add_instruction(command[0]([item["value"]]))
-                elif command[1] == 0:
-                    instructions.add_instruction(command[0]([]))
-                else:
-                    clrprint.clrprint(
-                        f"unable to add instruction {item['type']} due to unknown or \
-                            invalid number of values needed",
-                            clr='red')
-                if verbose:
-                    clrprint.clrprint(f"added instruction {item['type']} with \
-                                      value {item['value']}", clr='green')
-                    if item["value"] % 1 != 0:
-                        clrprint.clrprint("WARNING: value given is a \
-                                          decimal value -> accuracy loss likely", clr='y')
-
-    handler.send(instructions)
-
-def main(args):
-    """
-        Main function called when communication begins
-    """
-    handler = Handler()
-    communication_handler = handler.start()
-
-    get_from_json(file_name=args[0], verbose=True, handler=communication_handler)

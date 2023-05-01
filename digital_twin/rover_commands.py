@@ -5,8 +5,6 @@ Handles the commands the rover will receive
 
 from enum import Enum
 from queue import Queue
-
-import json
 import numpy as np
 from digital_twin import constants
 from digital_twin.rover import Rover
@@ -174,7 +172,7 @@ class RoverCommands:
                     print(f"TIME        : {int(self._current_command[2] * 1000) / 1000}s")
 
 
-def save_rover_instructions_as_json(instructions: list[tuple[float]]):
+def rover_instructions_to_json(instructions: list[tuple[float]]):
     """
     Saves the rover's instruction as a json file
 
@@ -190,10 +188,8 @@ def save_rover_instructions_as_json(instructions: list[tuple[float]]):
         elif command_type == RoverCommandType.ROTATE:
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
-        to_export.append({"type": named_type, "value":value})
-
-    with open("test.json", "w", encoding="UTF-8") as dump_file:
-        json.dump(to_export, dump_file)
+        to_export.append({"type":named_type, "value":value})
+    return to_export
 
 
 def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0)\

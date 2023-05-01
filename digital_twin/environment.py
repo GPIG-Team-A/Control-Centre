@@ -3,27 +3,10 @@ Handles the environment the rover will operate in
 """
 
 import enum
-
 import numpy as np
-import pygame
-from pygame.locals import QUIT
 
 from digital_twin.rover import Rover
 from digital_twin.constants import METERS_PER_TILE, DISTANCE_BETWEEN_MOTORS
-
-SCREEN_WIDTH = 1000
-""" The width of the GUI in pixels"""
-SCREEN_HEIGHT = 900
-""" The height of the GUI in pixels """
-
-TILE_START_X = 10
-""" The starting x coordinate of the tile map """
-TILE_START_Y = 10
-""" The starting y coordinate of the tile map """
-TILE_WIDTH = 20
-""" The width of each tile in pixels """
-TILE_HEIGHT = 20
-""" The height of each tile in pixels """
 
 
 class EnvType(enum.Enum):
@@ -596,104 +579,3 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int],
     print("PATH FINDING COMPLETE")
 
     return path
-
-
-def setup_gui() -> pygame.Surface:
-    """
-    Sets up the environment GUI
-
-    :return: The environment GUI
-    """
-
-    pygame.init()
-
-    return pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-
-def run(display: pygame.surface, environment: Environment):
-    """
-    Runs the environment GUI's loop
-
-    :param display: The environment GUI
-    :param environment: The environment being displayed
-    """
-
-    # Runs until the GUI is closed
-    is_running = True
-    while is_running:
-        # Updates the environment onto the GUI
-        update(display, environment)
-
-        # Updates any changes the GUI to the display
-        pygame.display.update()
-
-        # Checks if the user closes the GUI
-        # If so, then the GUI and its related processes are terminated
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                is_running = False
-
-
-def update(display: pygame.surface, environment: Environment):
-    """
-    Updates the environment onto the GUI
-
-    :param display: The environment GUI
-    :param environment: The environment being simulated
-    """
-    # Clears the display
-    display.fill((50, 50, 50))
-
-    width, height = environment.size()
-
-    # Iterates through each tile
-    for y in range(height):
-        for x in range(width):
-            # Gets the tile's position in the GUI
-            pos_x = TILE_START_X + x * (TILE_WIDTH + 2)
-            pos_y = TILE_START_Y + y * (TILE_HEIGHT + 2)
-
-            # Gets the type of the tile, this has a colour corresponding to it
-            tile_type = environment.get_tile(x, y)
-
-            if tile_type is None:
-                tile_type = EnvType.EMPTY
-
-            # Draws the tile
-            pygame.draw.rect(display, tile_type.value, (pos_x, pos_y, TILE_WIDTH, TILE_HEIGHT))
-
-    path = environment.get_path(should_generate=False)
-
-    if path is not None:
-        for i in range(len(path ) - 1):
-            pos_1 = path[i]
-            pos_2 = path[i + 1]
-
-            pygame.draw.line(display, (0, 0, 0),
-                             (TILE_START_X + (pos_1[0] + 0.5) * (TILE_WIDTH + 2),
-                              TILE_START_Y + (pos_1[1] + 0.5) * (TILE_HEIGHT + 2)),
-                             (TILE_START_X + (pos_2[0] + 0.5) * (TILE_WIDTH + 2),
-                              TILE_START_Y + (pos_2[1] + 0.5) * (TILE_HEIGHT + 2)), width=2)
-
-    # Handles the displaying of the rover
-    rover = environment.get_rover()
-
-    if rover is not None:
-        rover_x, rover_y = rover.get_location()
-
-        # Converts the rover's coordinates from meters to pixels
-        rover_x *= (TILE_WIDTH + 2) / METERS_PER_TILE
-        rover_y *= (TILE_HEIGHT + 2) / METERS_PER_TILE
-
-        rover_diameter = DISTANCE_BETWEEN_MOTORS * TILE_WIDTH / METERS_PER_TILE
-
-        # Adjusts the coordinates so that they fit in the map
-        adjusted_rover_x = rover_x + TILE_START_X - rover_diameter / 2
-        adjusted_rover_y = rover_y + TILE_START_Y - rover_diameter / 2
-
-        rover_sprite = pygame.image.load("resources/Rover.png")
-        rover_sprite = pygame.transform.rotozoom(rover_sprite, -rover.get_direction() * 360
-                                                 / (2 * np.pi) - 90, rover_diameter / 16)
-
-        display.blit(rover_sprite, (adjusted_rover_x, adjusted_rover_y))

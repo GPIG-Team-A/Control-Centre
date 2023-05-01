@@ -16,12 +16,16 @@ class MotorPair:
         self.pair.run_at_speed(a_speed, b_speed)
     
     def run_for_degrees(self, degrees, speed=100):
-        a_speed = speed
-        b_speed = speed
+        if isinstance(speed, tuple):
+            a_speed = speed[0]
+            b_speed = speed[1]
+        else:
+            a_speed = speed
+            b_speed = speed
         if self.A.inverted:
-            a_speed = -1 * speed
+            a_speed *= -1
         if self.B.inverted:
-            b_speed = -1 * speed
+            b_speed *= -1
         self.pair.run_for_degrees(degrees, a_speed, b_speed)
     
     def stop(self):
