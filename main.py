@@ -217,14 +217,10 @@ class Window(QMainWindow):
         """
             Dump rover logs
         """
-        if not self.spike_handler.connected:
-            self._show_message_box(QMessageBox.Warning, "Not Connected!",
-                "You're not connected to the rover")
-        else:
-            log = self.spike_handler.get_log()
-            if log:
-                upload_log_file(log)
-                print("Uploading log file...")
+        log = self.spike_handler.get_log()
+        if log:
+            upload_log_file(log)
+            print("Uploading log file...")
 
     def open_load_environment_dialog(self):
         """

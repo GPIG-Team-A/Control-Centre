@@ -14,7 +14,7 @@ def upload_log_file(log_text):
         Upload log file to discord
     """
     data = {
-        "content" : f"I have the following log to report 07!```{log_text}```",
+        "content" : f"I have the following log to report :salute:!```{log_text}```",
         "username" : "Log Dumper"
         #"embeds" : [
         #    {
