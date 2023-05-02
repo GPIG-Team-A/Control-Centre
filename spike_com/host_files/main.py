@@ -3,8 +3,8 @@
 """
 import time
 import clrprint
-from spike_com.host_files.protocol import Directions, Ping, DistanceSend, MiningInstruction
-from spike_com.host_files.commands import move, rotate, set_variable
+from spike_com.host_files.protocol import Directions, Ping, DistanceSend
+from spike_com.host_files.commands import move, rotate, set_variable, mine
 from spike_com.host_files.communicate import CommunicationHandler
 
 
@@ -75,7 +75,7 @@ class Handler:
         """
         commands = {"MOVE": [move, 1],
             "ROTATE": [rotate, 1],
-            #"GET": [Commands.get, 0]
+            "MINE": [mine, 0]
         }
         directions = Directions()
         for item in instructions:
@@ -84,7 +84,7 @@ class Handler:
                 if command[1] == 1:
                     directions.add_instruction(command[0]([item["value"]]))
                 elif command[1] == 0:
-                    directions.add_instruction(command[0]([]))
+                    directions.add_instruction(command[0]())
                 else:
                     clrprint.clrprint(
                         f"unable to add instruction {item['type']} due to unknown or \
