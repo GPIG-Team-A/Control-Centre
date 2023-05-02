@@ -3,7 +3,7 @@
 """
 import sys
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QTimer, QCoreApplication
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu,QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton, QMessageBox
@@ -13,7 +13,7 @@ from digital_twin import constants
 from digital_twin.environment import EnvType
 from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path,\
-    rover_instructions_to_json, RoverCommandType
+    rover_instructions_to_json
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
@@ -125,6 +125,13 @@ class Grid(QWidget):
 
 
 def get_image(painter: QPainter, image: QImage, rover: Rover):
+    """
+    :param painter: The current GUI painter
+    :param image: The image of the rover
+    :param rover: The rover being displayed
+    :return: The image of the rover at the correct orientation
+    """
+
     transform = painter.transform().rotateRadians(rover.get_direction() + numpy.pi / 2)
     pixmap = QPixmap(image)
     pixmap = pixmap.transformed(transform, Qt.SmoothTransformation)
@@ -253,7 +260,8 @@ class Window(QMainWindow):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         file_name, _ = QFileDialog.getOpenFileName(self, 
-            "Select Environment Image File", "./resources", "Env Images (*env*.png)", options=options)
+            "Select Environment Image File", "./resources",
+            "Env Images (*env*.png)", options=options)
         if file_name:
             self.load_environment(file_name)
 
