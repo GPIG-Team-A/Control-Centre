@@ -11,7 +11,7 @@ WHEEL_CIRCUMFERENCE: float = 0.276
 TIME_BETWEEN_MOVEMENTS: float = 0.001
 """ The time between each rover movement in seconds """
 
-METERS_PER_TILE: float = 0.075
+METERS_PER_TILE: float = 0.1
 """ The size of the environment tiles in meters """
 
 ROVER_STANDARD_DEVIATION: float = 0.8806615716635956 / 50.01724137931034

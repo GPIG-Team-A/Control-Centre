@@ -3,11 +3,11 @@
 """
 import sys
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QTimer, QCoreApplication
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu,QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout,QLineEdit,QWidget,QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap
 from digital_twin.rover import Rover
 from digital_twin import constants
 from digital_twin.environment import EnvType
@@ -71,8 +71,8 @@ class Grid(QWidget):
         object_rect = QRectF(margin, margin, object_size, object_size)
         node_rect = QRectF(margin, margin, object_size/2, object_size/2)
         
-        for y in range(int(height - 1)):
-            for x in range(int(width - 1)):
+        for y in range(int(height)):
+            for x in range(int(width)):
                 # Gets the tile's position in the GUI
                 pos_x = TILE_START_X + x * (TILE_WIDTH + 2)
                 pos_y = TILE_START_Y + y * (TILE_HEIGHT + 2)
@@ -103,7 +103,34 @@ class Grid(QWidget):
                 x[0] - 0.25*((TILE_WIDTH + 2)),y[0] - 0.25*((TILE_WIDTH + 2))))
             painter.drawEllipse(node_rect.translated(
                 x[1] - 0.25*((TILE_WIDTH + 2)),y[1] - 0.25*((TILE_WIDTH + 2))))
+
+        rover = self.environment.get_rover()
+
+        if rover is not None:
+            rover_x, rover_y = rover.get_location()
+
+            rover_dims = constants.DISTANCE_BETWEEN_MOTORS * (TILE_WIDTH + 2) \
+                         / constants.METERS_PER_TILE
+
+            rover_map_x = ((TILE_WIDTH + 2) / constants.METERS_PER_TILE) * rover_x\
+                            + TILE_START_X - rover_dims / 2
+            rover_map_y = ((TILE_WIDTH + 2) / constants.METERS_PER_TILE) * rover_y\
+                            + TILE_START_Y - rover_dims / 2
+
+            rover_rect = QRectF(rover_map_x, rover_map_y, rover_dims, rover_dims)
+
+            painter.drawImage(rover_rect, get_image(painter, QImage("resources/Rover.png"), rover))
+
         painter.end()
+
+
+def get_image(painter: QPainter, image: QImage, rover: Rover):
+    transform = painter.transform().rotateRadians(rover.get_direction() + numpy.pi / 2)
+    pixmap = QPixmap(image)
+    pixmap = pixmap.transformed(transform, Qt.SmoothTransformation)
+    return pixmap.toImage()
+
+
 
 class Window(QMainWindow):
     """Main Window."""
@@ -226,7 +253,7 @@ class Window(QMainWindow):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         file_name, _ = QFileDialog.getOpenFileName(self, 
-            "Select Environment Image File", "","All Files (*)", options=options)
+            "Select Environment Image File", "./resources", "Env Images (*env*.png)", options=options)
         if file_name:
             self.load_environment(file_name)
 
@@ -289,25 +316,28 @@ class Window(QMainWindow):
         cmd_thread = RoverCommandThread(rover)
         cmd_thread.start()
         rover_command = cmd_thread.get_rover_command()
-        
-        # Bunch of stuff I no understand
-        mean_power = 50.01724137931034
-        stdev = 0.8806615716635956
-        tst = [(mean_power + numpy.random.normal(0, stdev), 
-                -mean_power + numpy.random.normal(0, stdev)) for _ in range(28)]
-        max_speed = 1
-        speeds = [(x[0] /100 * max_speed, -x[1] / 100 * max_speed) for x in tst]
-        rover_cmds = [(RoverCommandType.RPMS, x, 0.1) for x in speeds]
-        for cmd_type, value, time in rover_cmds:
-            rover_command.add_command(cmd_type, value, time)
 
         # Get rover commands to send to physical rover
         path = self.environment.get_path()
         rover_commands = create_rover_instructions_from_path(path, rover.get_direction())
+
+        for cmd_type, value, time in rover_commands:
+            rover_command.add_command(cmd_type, value, time)
+
         formatted_instructs = rover_instructions_to_json(rover_commands)
-        print("Sending instructions...")
-        self.spike_handler.send_instructions(formatted_instructs)
+
+        if self.spike_handler.communication_handler is not None:
+            print("Sending instructions...")
+            self.spike_handler.send_instructions(formatted_instructs)
+        else:
+            print("Physical Rover not connected")
+
         self._show_message_box(QMessageBox.Information, "Instructions Sent", "Instructions Sent!")
+
+        while not rover_command.is_empty():
+            QCoreApplication.processEvents()
+            self.grid.repaint()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
