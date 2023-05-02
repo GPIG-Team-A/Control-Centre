@@ -254,7 +254,6 @@ class Window(QMainWindow):
         log = self.spike_handler.get_log()
         if log:
             upload_log_file(log)
-            print("Uploading log file...")
 
     def open_load_environment_dialog(self):
         """

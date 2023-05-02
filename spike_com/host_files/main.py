@@ -3,7 +3,7 @@
 """
 import time
 import clrprint
-from spike_com.host_files.protocol import Directions, Ping, DistanceSend
+from spike_com.host_files.protocol import Directions, Ping, DistanceSend, MiningInstruction
 from spike_com.host_files.commands import move, rotate, set_variable
 from spike_com.host_files.communicate import CommunicationHandler
 
@@ -90,6 +90,9 @@ class Handler:
                         f"unable to add instruction {item['type']} due to unknown or \
                             invalid number of values needed",
                             clr='red')
+        
+        directions = Directions()
+        directions.add_instruction(MiningInstruction(time=5))
         self.communication_handler.send(directions)
 
     def start(self):
