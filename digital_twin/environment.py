@@ -112,6 +112,12 @@ class Environment:
         self._end: tuple[int] = None
         """ The goal node, which the rover will work towards """
 
+        self._start_dir: float = 0
+        """ The starting angle of the rover in the environment, in radians """
+
+        self._end_dir: float = 0
+        """ The ending angle of the rover in the environment, in radians """
+
         self._path = None
         """ The cache list of coordinates which the rover can traverse from the start 
             to end without encountering any obstacles
@@ -131,6 +137,30 @@ class Environment:
 
         if end is not None:
             self.set_tile(end[0], end[1], EnvType.END)
+
+    def set_start_direction(self, new_start_direction: float):
+        """
+        Sets the starting direction of the rover
+
+        :param new_start_direction: The angular starting direction of the rover,
+                                    in radians
+        """
+        self._start_dir = new_start_direction
+
+    def set_end_direction(self, new_end_direction: float):
+        """
+        Sets the ending direction of the rover
+
+        :param new_end_direction: The angular ending direction of the rover,
+                                    in radians
+        """
+        self._end_dir = new_end_direction
+
+    def get_start_end_directions(self) -> tuple[float]:
+        """
+        :return: (starting_θ, ending_θ), where θ is the angle in radians
+        """
+        return self._start_dir, self._end_dir
 
     def set_rover(self, rover: Rover):
         """

@@ -86,7 +86,7 @@ class RoverCommands:
         """
         :return: True if the command queue is empty
         """
-        return self._command_queue.empty()
+        return self._command_queue.empty() and self._current_command is None
 
     def add_command(self, command_type: RoverCommandType,
                     value: float, time: float, is_printing: bool = True):
@@ -192,7 +192,9 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
     return to_export
 
 
-def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction: float = 0)\
+def create_rover_instructions_from_path(path: list[tuple[int]],
+                                        rover_direction: float = 0,
+                                        rover_final_direction: float = 0)\
         -> list[tuple[float]]:
     """
     Creates a set of rover instructions (command_type, value, time) from the path given
@@ -244,5 +246,19 @@ def create_rover_instructions_from_path(path: list[tuple[int]], rover_direction:
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)
         cur_direction = new_angle
+
+    # The current direction vector (dirX, dirY)
+    vector_1 = convert_angle_to_2d_vector(cur_direction)
+    # The next direction vector (dirX', dirY')
+    vector_2 = convert_angle_to_2d_vector(rover_final_direction)
+
+    # The angle the rover needs to turn to reach the new direction,
+    # is signed angular direction in radians
+    d_angle = get_angle_from_vectors(vector_1, vector_2)
+
+    # If the angle is 0 then no change in direction is needed
+    if d_angle != 0:
+        # Adds the change direction command
+        cmds.append((RoverCommandType.ROTATE, -d_angle, 0.2))
 
     return cmds

@@ -145,7 +145,8 @@ def simulate(env: Environment, trial_number: int, prob_failure: float,
 
             cur_rover = Rover((env_start_x + 0.5) * METERS_PER_TILE,
                               (env_start_y + 0.5) * METERS_PER_TILE,
-                              direction, motor_stdev=ROVER_STANDARD_DEVIATION)
+                              env.get_start_end_directions()[0],
+                              motor_stdev=ROVER_STANDARD_DEVIATION)
             rover_command = RoverCommands()
 
             env.set_rover(cur_rover)
