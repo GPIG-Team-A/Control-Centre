@@ -4,13 +4,15 @@ The GUI handler of the system
 
 import sys
 import threading
+import ctypes
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QSize
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QIcon
+
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
 from digital_twin import constants
@@ -22,6 +24,10 @@ from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
 
+
+MY_APP_ID = 'gooogle.wallacerover.controlcentre.1.0.0'
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(MY_APP_ID)
+
 # Constants
 SCREEN_WIDTH = 1000
 """ The width of the GUI in pixels"""
@@ -31,6 +37,8 @@ TILE_START_X = 10
 """ The starting x coordinate of the tile map """
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
+
+
 # TILE_WIDTH = 20
 # """ The width of each tile in pixels """
 # TILE_HEIGHT = 20
@@ -58,6 +66,13 @@ class Grid(QWidget):
 
     def __init__(self, environment, **kwargs):
         super().__init__(**kwargs)
+
+        self.setAutoFillBackground(True)
+
+        pallet = self.palette()
+        pallet.setColor(self.backgroundRole(), Qt.gray)
+        self.setPalette(pallet)
+
         self.setFixedSize(800, 800)
         self.columns = 400
         self.rows = 300
@@ -85,6 +100,7 @@ class Grid(QWidget):
         ]))
 
         painter = QPainter(self)
+
         # translate the painter by half a pixel to ensure correct line painting
         painter.translate(.5, .5)
         painter.setRenderHints(painter.Antialiasing)
@@ -110,13 +126,18 @@ class Grid(QWidget):
                 if tile_type is None:
                     tile_type = EnvType.EMPTY
                 # Draws the tile
-                painter.drawLine(pos_x, pos_y, pos_x + self.square_size, pos_y)
-                painter.drawLine(pos_x, pos_y, pos_x, pos_y + self.square_size)
+                # painter.drawLine(pos_x, pos_y, pos_x + self.square_size, pos_y)
+                # painter.drawLine(pos_x, pos_y, pos_x, pos_y + self.square_size)
                 if tile_type == EnvType.OBSTACLE:
                     painter.setBrush(Qt.red)
                     painter.drawRect(object_rect.translated(pos_x, pos_y))
 
         painter.setBrush(Qt.green)
+        _, (goal_pos_x, goal_pos_y) = self.environment.get_start_end()
+        goal_pos_x, goal_pos_y = TILE_START_Y + goal_pos_x * (self.square_size + 2), \
+                                 TILE_START_Y + goal_pos_y * (self.square_size + 2)
+        painter.drawRect(object_rect.translated(goal_pos_x, goal_pos_y))
+
         path = self.environment.get_path(should_generate=False)
 
         if path is not None:
@@ -172,10 +193,6 @@ class Window(QMainWindow):
         self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.setCentralWidget(self.central_widget)
 
-        self._start_dir_edit_box: QLineEdit = None
-        self._end_dir_edit_box: QLineEdit = None
-        self._run_num_edit_box: QLineEdit = None
-
         self._build_ui()
 
     def closeEvent(self, _):  # pylint: disable=C0103
@@ -185,7 +202,7 @@ class Window(QMainWindow):
         # Disconnect our spike handler
         self.spike_handler.disconnect()
 
-    def eventFilter(self, source, event):   # pylint: disable=C0103
+    def eventFilter(self, source, event):  # pylint: disable=C0103
         """
         Handles the window's events
 
@@ -297,6 +314,11 @@ class Window(QMainWindow):
         self._run_num_edit_box.setValidator(QIntValidator(1, 100000))
         layout.addWidget(self._run_num_edit_box)
 
+        self._max_fail_prob_edit_box = QLineEdit()
+        self._max_fail_prob_edit_box.setPlaceholderText("Failure Probability 0 to 1")
+        self._max_fail_prob_edit_box.setValidator(QDoubleValidator(0.0, 1.0, 5))
+        layout.addWidget(self._max_fail_prob_edit_box)
+
         run_sim_button = QPushButton("Run Simulation")
         run_sim_button.clicked.connect(self.simulate_rover)
         layout.addWidget(run_sim_button)
@@ -398,12 +420,12 @@ class Window(QMainWindow):
         rover = self.environment.get_rover()
 
         if len(self._start_dir_edit_box.text()) > 0:
-            self.environment.set_start_direction(int(self._start_dir_edit_box.text())\
+            self.environment.set_start_direction(int(self._start_dir_edit_box.text()) \
                                                  * numpy.pi / 2)
 
         if len(self._end_dir_edit_box.text()) > 0:
-            self.environment.set_end_direction(int(self._end_dir_edit_box.text())\
-                                                 * numpy.pi / 2)
+            self.environment.set_end_direction(int(self._end_dir_edit_box.text()) \
+                                               * numpy.pi / 2)
 
         # Start rover command thread
         cmd_thread = RoverCommandThread(rover)
@@ -453,8 +475,12 @@ class Window(QMainWindow):
         run_num = int(self._run_num_edit_box.text()) \
             if len(self._run_num_edit_box.text()) > 0 else 1
 
+        failure_probability = float(self._max_fail_prob_edit_box.text())
+
         thread = threading.Thread(target=simulate,
-                                  args=(self.environment, run_num, 0.05),
+                                  args=(self.environment,
+                                        run_num,
+                                        failure_probability),
                                   daemon=True)
         thread.start()
 
@@ -470,6 +496,11 @@ def setup() -> int:
     :return: The exit code given by the GUI application
     """
     app = QApplication(sys.argv)
+
+    app_icon = QIcon()
+    app_icon.addFile("resources/Wallace.png", QSize(32, 32))
+    app.setWindowIcon(app_icon)
+
     win = Window()
     win.show()
     return app.exec_()
