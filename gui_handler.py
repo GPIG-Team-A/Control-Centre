@@ -236,6 +236,10 @@ class Window(QMainWindow):
         """
             Build the UI components
         """
+        self._start_dir_edit_box = None
+        self._end_dir_edit_box = None
+        self._run_num_edit_box = None
+        self._max_fail_prob_edit_box = None
         self._setup_dock_window()
 
         self.new_action = QAction(self)
