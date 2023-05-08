@@ -236,10 +236,10 @@ class Window(QMainWindow):
         """
             Build the UI components
         """
-        self._start_dir_edit_box = None
-        self._end_dir_edit_box = None
-        self._run_num_edit_box = None
-        self._max_fail_prob_edit_box = None
+        self._start_dir_edit_box = QLineEdit()
+        self._end_dir_edit_box = QLineEdit()
+        self._run_num_edit_box = QLineEdit()
+        self._max_fail_prob_edit_box = QLineEdit()
         self._setup_dock_window()
 
         self.new_action = QAction(self)
@@ -297,13 +297,11 @@ class Window(QMainWindow):
 
         layout = QVBoxLayout()
 
-        self._start_dir_edit_box = QLineEdit()
         self._start_dir_edit_box.setPlaceholderText("Starting Direction Angle")
         self._start_dir_edit_box.setValidator(QIntValidator(0, 360))
         self._start_dir_edit_box.installEventFilter(self)
         layout.addWidget(self._start_dir_edit_box)
 
-        self._end_dir_edit_box = QLineEdit()
         self._end_dir_edit_box.setPlaceholderText("Final Direction Angle")
         self._end_dir_edit_box.setValidator(QIntValidator(0, 360))
         self._end_dir_edit_box.installEventFilter(self)
@@ -313,12 +311,10 @@ class Window(QMainWindow):
         run_button.clicked.connect(self.run_rover_main)
         layout.addWidget(run_button)
 
-        self._run_num_edit_box = QLineEdit()
         self._run_num_edit_box.setPlaceholderText("Number of runs")
         self._run_num_edit_box.setValidator(QIntValidator(1, 100000))
         layout.addWidget(self._run_num_edit_box)
 
-        self._max_fail_prob_edit_box = QLineEdit()
         self._max_fail_prob_edit_box.setPlaceholderText("Failure Probability 0 to 1")
         self._max_fail_prob_edit_box.setValidator(QDoubleValidator(0.0, 1.0, 5))
         layout.addWidget(self._max_fail_prob_edit_box)
