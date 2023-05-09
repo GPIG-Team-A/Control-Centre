@@ -104,7 +104,7 @@ class Rover:
 
         angle_change = rover_rpm_instructions.angle_from_motor_speed(motor1_speed_adj,
                                                                      motor2_speed_adj)
-        distance = (motor1_speed + motor2_speed) * time
+        distance = (motor1_speed_adj + motor2_speed_adj) * time
 
         self._direction += angle_change
 

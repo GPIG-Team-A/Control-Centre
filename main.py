@@ -32,6 +32,7 @@ TILE_WIDTH = 20
 TILE_HEIGHT = 20
 """ The height of each tile in pixels """
 
+
 class Grid(QWidget):
     """ Visual representation of an environment """
 
@@ -52,8 +53,6 @@ class Grid(QWidget):
             (12, 20),
             (12, 22),
         ]
-
-
     def paintEvent(self, _): # pylint: disable=C0103
         """
             Paint the Grid
@@ -83,7 +82,6 @@ class Grid(QWidget):
               #  print("{x} {y}")
                 if tile_type is None:
                     tile_type = EnvType.EMPTY
-
                 # Draws the tile
                 painter.drawLine(pos_x, pos_y, pos_x + TILE_WIDTH, pos_y)
                 painter.drawLine(pos_x, pos_y, pos_x , pos_y + TILE_HEIGHT)
@@ -151,7 +149,6 @@ class Window(QMainWindow):
         run_button = QPushButton("Run")
         run_button.clicked.connect(self.run_rover_main)
         layout.addWidget(run_button)
-
         widg = QWidget()
         widg.setLayout(layout)
 
@@ -308,7 +305,6 @@ class Window(QMainWindow):
         path = self.environment.get_path()
         rover_commands = create_rover_instructions_from_path(path, rover.get_direction())
         formatted_instructs = rover_instructions_to_json(rover_commands)
-
         print("Sending instructions...")
         self.spike_handler.send_instructions(formatted_instructs)
         self._show_message_box(QMessageBox.Information, "Instructions Sent", "Instructions Sent!")
