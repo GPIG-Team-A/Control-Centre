@@ -22,7 +22,7 @@ import log
 LEFT_WHEEL = Motor("A")
 RIGHT_WHEEL = Motor("B", inverted=True)
 WHEEL_PAIR = MotorPair(LEFT_WHEEL, RIGHT_WHEEL)
-DISTANCE_SENSOR = Ultrasonic("E")
+DISTANCE_SENSOR = Ultrasonic("C")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
@@ -91,6 +91,11 @@ def do_safe_move(instruction):
             return False
         if LIGHT_SENSOR_BOTTOM.get_reflecton() <= 2:
             log.log("INTERRUPT: Registered no reflection... stopping")
+            WHEEL_PAIR.stop()
+            play_sound("/sounds/scream.raw")
+            return False
+        if DISTANCE_SENSOR.get_distance() <= 10:
+            log.log("INTERRUPT: Registered object 5cm infront... stopping")
             WHEEL_PAIR.stop()
             play_sound("/sounds/scream.raw")
             return False
