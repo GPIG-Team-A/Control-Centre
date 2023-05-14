@@ -179,7 +179,6 @@ class Window(QMainWindow):
     """Main Window."""
 
     update_rover_status = pyqtSignal(bool)
-
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
@@ -187,11 +186,15 @@ class Window(QMainWindow):
         self.environment = None
         self.grid = None
         self.spike_handler = SpikeHandler()
-        self.setWindowTitle("Python Menus & Toolbars")
-        self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.central_widget = QLabel("Load an Environment: File -> Open")
-        self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.setWindowTitle("Gromit's Command Centre")
+        self.setMinimumSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.central_widget = QPushButton("Click to load an environment")
+        self.central_widget.clicked.connect(self.open_load_environment_dialog)
+        #self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.setCentralWidget(self.central_widget)
+        self.loaded_env = False
+        
+
 
         self._build_ui()
 
@@ -200,7 +203,8 @@ class Window(QMainWindow):
             Called when window closes
         """
         # Disconnect our spike handler
-        self.spike_handler.disconnect()
+        if self.spike_handler.connected:
+            self.spike_handler.disconnect()
 
     def eventFilter(self, source, event):  # pylint: disable=C0103
         """
@@ -241,6 +245,7 @@ class Window(QMainWindow):
         self._run_num_edit_box = QLineEdit()
         self._max_fail_prob_edit_box = QLineEdit()
         self._setup_dock_window()
+
 
         self.new_action = QAction(self)
         self.open_action = QAction("&Open...", self)
@@ -287,11 +292,38 @@ class Window(QMainWindow):
         self.update_rover_action.triggered.connect(self.update_rover)
         edit_menu.addAction(self.update_rover_action)
 
+        self._rover_control_dock_window()
+
+    def _rover_control_dock_window(self):
+        """
+        Creates the dock window used in the GUI
+        """
+        dock_widget = QDockWidget(str("Simulation Control"), self)
+        dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
+                                    Qt.RightDockWidgetArea)
+        
+        layout = QVBoxLayout()
+
+        connect_button = QPushButton("Connect to Rover")
+        connect_button.clicked.connect(self._connect_to_rover)
+        layout.addWidget(connect_button)
+
+        log_dump_button = QPushButton("Dump Log")
+        log_dump_button.clicked.connect(self.log_dump)
+        layout.addWidget(log_dump_button)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+
+        dock_widget.setWidget(widget)
+        dock_widget.setGeometry(100, 0, 200, 30)
+        self.addDockWidget(Qt.RightDockWidgetArea, dock_widget)
+
     def _setup_dock_window(self):
         """
         Creates the dock window used in the GUI
         """
-        dock_widget = QDockWidget(str("Dock Widget"), self)
+        dock_widget = QDockWidget(str("Simulation Control"), self)
         dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
                                     Qt.RightDockWidgetArea)
 
@@ -321,6 +353,7 @@ class Window(QMainWindow):
 
         run_sim_button = QPushButton("Run Simulation")
         run_sim_button.clicked.connect(self.simulate_rover)
+        
         layout.addWidget(run_sim_button)
 
         widget = QWidget()
@@ -343,6 +376,8 @@ class Window(QMainWindow):
         """
             Dump rover logs
         """
+        if not self.check_for_environment_loaded():
+            return
         log = self.spike_handler.get_log()
         if log:
             upload_log_file(log)
@@ -384,6 +419,7 @@ class Window(QMainWindow):
 
         # Load the grid UI
         self.add_grid(self.environment)
+        self.loaded_env = (True)
 
     def _show_message_box(self, icon, title, text):
         """
@@ -391,8 +427,8 @@ class Window(QMainWindow):
         """
         msg = QMessageBox()
         msg.setIcon(icon)
-        msg.setText(title)
-        msg.setWindowTitle(text)
+        msg.setText(text)
+        msg.setWindowTitle(title)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
@@ -416,6 +452,8 @@ class Window(QMainWindow):
         """
             Execute the Rover Commands
         """
+        if not self.check_for_environment_loaded():
+            return
         # Get the rover from our environment
         rover = self.environment.get_rover()
 
@@ -466,16 +504,25 @@ class Window(QMainWindow):
             QCoreApplication.processEvents()
             self.grid.repaint()
 
+    def check_for_environment_loaded(self):
+        if not self.loaded_env:
+            print("environment not loaded")
+        
+        return self.loaded_env
+
     def simulate_rover(self):
         """
         Commences simulated trials of the rover's actions using real world information to adjust
         the path finding to be suitable for the real rover
         Uses hypothesis testing
         """
+        if not self.check_for_environment_loaded():
+            return
+        
         run_num = int(self._run_num_edit_box.text()) \
             if len(self._run_num_edit_box.text()) > 0 else 1
-
-        failure_probability = float(self._max_fail_prob_edit_box.text())
+        
+        failure_probability = float(self._max_fail_prob_edit_box.text()) if len(self._max_fail_prob_edit_box.text()) > 0 else 0.5
 
         thread = threading.Thread(target=simulate,
                                   args=(self.environment,
