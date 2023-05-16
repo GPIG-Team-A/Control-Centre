@@ -112,6 +112,12 @@ class Environment:
         self._end: tuple[int] = None
         """ The goal node, which the rover will work towards """
 
+        self._start_dir: float = 0
+        """ The starting angle of the rover in the environment, in radians """
+
+        self._end_dir: float = 0
+        """ The ending angle of the rover in the environment, in radians """
+
         self._path = None
         """ The cache list of coordinates which the rover can traverse from the start 
             to end without encountering any obstacles
@@ -131,6 +137,30 @@ class Environment:
 
         if end is not None:
             self.set_tile(end[0], end[1], EnvType.END)
+
+    def set_start_direction(self, new_start_direction: float):
+        """
+        Sets the starting direction of the rover
+
+        :param new_start_direction: The angular starting direction of the rover,
+                                    in radians
+        """
+        self._start_dir = new_start_direction
+
+    def set_end_direction(self, new_end_direction: float):
+        """
+        Sets the ending direction of the rover
+
+        :param new_end_direction: The angular ending direction of the rover,
+                                    in radians
+        """
+        self._end_dir = new_end_direction
+
+    def get_start_end_directions(self) -> tuple[float]:
+        """
+        :return: (starting_θ, ending_θ), where θ is the angle in radians
+        """
+        return self._start_dir, self._end_dir
 
     def set_rover(self, rover: Rover):
         """
@@ -345,11 +375,11 @@ def _is_line_of_sight(env: Environment, point_1: tuple[int],
 
     rays_cast = 11
 
-    start_point = [point_1[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                   point_1[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+    start_point = [point_1[0] - (dist / 2) * perpendicular_vector[0],
+                   point_1[1] - (dist / 2) * perpendicular_vector[1]]
 
-    end_point = [point_2[0] + 0.5 - (dist / 2) * perpendicular_vector[0],
-                 point_2[1] + 0.5 - (dist / 2) * perpendicular_vector[1]]
+    end_point = [point_2[0] + 1 - (dist / 2) * perpendicular_vector[0],
+                 point_2[1] + 1 - (dist / 2) * perpendicular_vector[1]]
 
     for ray in range(rays_cast):
         s_p = (start_point[0] + dist * (ray / (rays_cast - 1)) * perpendicular_vector[0],

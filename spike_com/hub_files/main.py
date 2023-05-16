@@ -84,6 +84,11 @@ def do_safe_move(instruction):
             WHEEL_PAIR.stop()
             play_sound("/sounds/scream.raw")
             return False
+        if DISTANCE_SENSOR.get_distance() <= 10:
+            log.log("INTERRUPT: Registered object 5cm infront... stopping")
+            WHEEL_PAIR.stop()
+            play_sound("/sounds/scream.raw")
+            return False
 
         if CORRECTION_SYSTEM_ENABLED and abs(current_yaw - directional_yaw) > tolerance:
             log.log("Incorrect yaw detected... correcting")
