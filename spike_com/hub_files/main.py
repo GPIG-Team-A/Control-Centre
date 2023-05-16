@@ -26,12 +26,16 @@ DISTANCE_SENSOR = Ultrasonic("C")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
-
+sounds = ["/sounds/scream.raw"]
 
 def play_sound(sound_file):
     hub.sound.play(sound_file)
     time.sleep(1)
 
+async def play_sound_index(handler, data):
+    if(len(sounds) > data.sound_code):
+        hub.sound.play(sounds[data.sound_code])
+        time.sleep(1)
 
 async def on_ping(handler, data):
     handler.send(Ping())
@@ -203,6 +207,7 @@ async def on_new_directions(handler, directions):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)
             log.log("Finished DistanceInstruction")
+            
         time.sleep(5)
 
 async def main():
@@ -212,6 +217,7 @@ async def main():
     handler.add_listener(Ping, on_ping)
     handler.add_listener(Directions, on_new_directions)
     handler.add_listener(DistanceInstruction, on_get_distance)
+    handler.add_listener(PlaySound, play_sound_index)
     await handler.start()
 
 

@@ -42,6 +42,27 @@ class Ping(Packet):
     def unpack(data):
         return Ping()
 
+class PlaySound(Packet):
+    """
+        Send sound play instruction
+    """
+    CODE = 99
+
+    def __init__(self, sound_code):
+        super().__init__(self.CODE)
+        self.sound_code = sound_code
+
+    
+    def pack(self):
+        payload = struct.pack("!B", self.sound_code)
+        return self._encapsulate(payload)
+    
+    @staticmethod
+    def unpack(data):
+        data = Packet.decapsulate(data)
+        soundcode =  struct.unpack("!B", data)
+        return PlaySound(soundcode)
+
 class DistanceInstruction(Packet):
     """
         A distance request instruction to the Spike
@@ -226,6 +247,7 @@ CODES = {
     1: MoveInstruction,
     2: DistanceInstruction,
     3: DistanceSend,
+    99: PlaySound,
     100: Directions,
 }
 

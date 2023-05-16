@@ -23,7 +23,7 @@ from digital_twin.rover_commands import create_rover_instructions_from_path, \
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
-
+import additional_windows
 
 MY_APP_ID = 'gooogle.wallacerover.controlcentre.1.0.0'
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(MY_APP_ID)
@@ -38,7 +38,7 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
-
+WIN_TITLE = "Gromit's Command Centre"
 # TILE_WIDTH = 20
 # """ The width of each tile in pixels """
 # TILE_HEIGHT = 20
@@ -186,16 +186,13 @@ class Window(QMainWindow):
         self.environment = None
         self.grid = None
         self.spike_handler = SpikeHandler()
-        self.setWindowTitle("Gromit's Command Centre")
+        self.setWindowTitle(WIN_TITLE)
         self.setMinimumSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.central_widget = QPushButton("Click to load an environment")
         self.central_widget.clicked.connect(self.open_load_environment_dialog)
         #self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.setCentralWidget(self.central_widget)
         self.loaded_env = False
-        
-
-
         self._build_ui()
 
     def closeEvent(self, _):  # pylint: disable=C0103
@@ -205,6 +202,8 @@ class Window(QMainWindow):
         # Disconnect our spike handler
         if self.spike_handler.connected:
             self.spike_handler.disconnect()
+        if self.sound_board:
+            self.sound_board.close()
 
     def eventFilter(self, source, event):  # pylint: disable=C0103
         """
@@ -264,11 +263,6 @@ class Window(QMainWindow):
         # Using a QToolBar object and a toolbar area
         help_tool_bar = QToolBar("Help", self)
         self.addToolBar(Qt.LeftToolBarArea, help_tool_bar)
-        self.font_size_spin_box = QSpinBox()
-        self.font_size_spin_box.setFocusPolicy(Qt.NoFocus)
-        label = QLabel("font size")
-        edit_tool_bar.addWidget(label)
-        edit_tool_bar.addWidget(self.font_size_spin_box)
 
         self.rover_status_label = QLabel("Rover Status: Offline")
         edit_tool_bar.addWidget(self.rover_status_label)
@@ -298,7 +292,7 @@ class Window(QMainWindow):
         """
         Creates the dock window used in the GUI
         """
-        dock_widget = QDockWidget(str("Simulation Control"), self)
+        dock_widget = QDockWidget(str("Rover Communication"), self)
         dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
                                     Qt.RightDockWidgetArea)
         
@@ -311,13 +305,25 @@ class Window(QMainWindow):
         log_dump_button = QPushButton("Dump Log")
         log_dump_button.clicked.connect(self.log_dump)
         layout.addWidget(log_dump_button)
+        
+        sound_board_button = QPushButton("Sound Board")
+        sound_board_button.clicked.connect(self._sound_board_window)
+        layout.addWidget(sound_board_button)
 
         widget = QWidget()
         widget.setLayout(layout)
 
         dock_widget.setWidget(widget)
-        dock_widget.setGeometry(100, 0, 200, 30)
-        self.addDockWidget(Qt.RightDockWidgetArea, dock_widget)
+       # dock_widget.setGeometry(100, 0, 200, 30)
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock_widget)
+
+    def _sound_board_window(self):
+        self.sound_board = additional_windows.AnotherWindow()
+        self.sound_board.create_soundboard_ui()
+        self.sound_board.show()
+
+        pass
+        #
 
     def _setup_dock_window(self):
         """
@@ -328,6 +334,14 @@ class Window(QMainWindow):
                                     Qt.RightDockWidgetArea)
 
         layout = QVBoxLayout()
+
+        self.image_box = QLabel("No environment loaded")
+
+        if self.loaded_env:
+            pixmap = QPixmap(self.file_name)
+            self.image_box.setPixmap(pixmap)
+
+        #layout.addWidget(self.image_box)
 
         self._start_dir_edit_box.setPlaceholderText("Starting Direction Angle")
         self._start_dir_edit_box.setValidator(QIntValidator(0, 360))
@@ -393,6 +407,9 @@ class Window(QMainWindow):
                                                    "Select Environment Image File", "./resources",
                                                    "Env Images (*env*.png)", options=options)
         if file_name:
+            self.file_name = file_name
+            
+            self.setWindowTitle(WIN_TITLE + ": " + file_name.split("/")[-1])
             self.load_environment(file_name)
 
     def add_grid(self, environment):
