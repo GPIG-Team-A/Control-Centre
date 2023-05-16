@@ -72,6 +72,7 @@ class Rover:
         Sets the position of the rover
         :param position: (x, y) coordinates
         """
+
         self._x, self._y = position
 
     def set_angle(self, angle):
@@ -114,6 +115,10 @@ class Rover:
         # Applies the direction with the distance to change the location
         self._x += distance * dx
         self._y += distance * dy
+
+        if numpy.isnan(self._x) or numpy.isnan(self._y):
+            print()
+
 
     def rotate(self, angle: float):
         """

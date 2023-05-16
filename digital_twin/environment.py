@@ -628,19 +628,24 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
         cur_path = []
 
         for end_node in temp_end_nodes:
-            path = pathfind(environment, cur_node, end_node, width_val)
-            dist = get_total_path_distance(path)
+            # path = pathfind(environment, cur_node, end_node, width_val)
+            # dist = get_total_path_distance(path)
+            dx = (end_node[0] - cur_node[0])
+            dy = (end_node[1] - cur_node[1])
+
+            dist = np.sqrt(dx ** 2 + dy ** 2)
 
             if dist < cur_dist:
                 cur_dist = dist
                 cur_end_node = end_node
-                cur_path = path
 
         new_tmp_nodes = [end_node for end_node in temp_end_nodes if end_node != cur_end_node]
         temp_end_nodes = new_tmp_nodes
+        cur_path = pathfind(environment, cur_node, cur_end_node, width_val)
 
         for path_node in cur_path:
-            full_path.append(path_node)
+            if path_node not in full_path:
+                full_path.append(path_node)
 
         cur_node = cur_end_node
 
