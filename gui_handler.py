@@ -39,6 +39,8 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
+ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.5, 1.75
+
 
 # TILE_WIDTH = 20
 # """ The width of each tile in pixels """
@@ -374,7 +376,7 @@ class Window(QMainWindow):
         """
             Load an environment into the UI
         """
-        self.environment = image_to_environment(3.5, 3, image_filename=image_filename)
+        self.environment = image_to_environment(ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH, image_filename=image_filename)
         self.environment.set_start_direction(-numpy.pi / 2)
 
         start_pos, _ = self.environment.get_start_end()
