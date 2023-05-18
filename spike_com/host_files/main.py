@@ -44,7 +44,8 @@ class Handler:
         commands = {"go": [move, 1],
             "turn": [rotate, 1],
             #"get": [Commands.get, 0],
-            "set": [set_variable, 2]
+            "set": [set_variable, 2],
+            "play": [play, 1]
         }
 
         instructions = Directions()
