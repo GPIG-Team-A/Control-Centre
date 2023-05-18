@@ -193,6 +193,7 @@ class Window(QMainWindow):
         #self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.setCentralWidget(self.central_widget)
         self.loaded_env = False
+        self.sound_board = None
         self._build_ui()
 
     def closeEvent(self, _):  # pylint: disable=C0103
@@ -234,6 +235,10 @@ class Window(QMainWindow):
                     self.environment.set_end_direction(angle)
 
         return super().eventFilter(source, event)
+
+    def open_configure_window(self):
+        dlg = additional_windows.ConfigurationDialog()
+        dlg.exec()
 
     def _build_ui(self):
         """
@@ -285,6 +290,9 @@ class Window(QMainWindow):
         self.update_rover_action = QAction("&Update Rover", self)
         self.update_rover_action.triggered.connect(self.update_rover)
         edit_menu.addAction(self.update_rover_action)
+        self.configuration_change_action = QAction("&Configure Rover", self)
+        self.configuration_change_action.triggered.connect(self.open_configure_window)
+        edit_menu.addAction(self.configuration_change_action)
 
         self._rover_control_dock_window()
 
