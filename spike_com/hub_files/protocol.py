@@ -1,7 +1,6 @@
 """
     Details key classes for the communication protocol
 """
-import time
 import struct
 
 class Packet:
@@ -11,20 +10,26 @@ class Packet:
 
     def __init__(self, code):
         self.code = code
-    
+
     def _encapsulate(self, payload):
         return struct.pack("!b", self.code) + payload
-    
+
     def pack(self):
         """ Requires overwrite """
         return b''
-    
+
     @staticmethod
     def decapsulate(data):
+        """
+            Decapsulate the packet into just the payload
+        """
         return data[1:]
-    
+
     @staticmethod
     def get_code(data):
+        """
+            Get the code of this packet
+        """
         code, = struct.unpack("!b", data[:1])
         return code
 
@@ -34,12 +39,15 @@ class Ping(Packet):
 
     def __init__(self):
         super().__init__(self.CODE)
-    
+
     def pack(self):
         return self._encapsulate(b'')
-    
+
     @staticmethod
-    def unpack(data):
+    def unpack(_):
+        """
+            Unpack the Ping Packet
+        """
         return Ping()
 
 class PlaySound(Packet):
@@ -77,7 +85,10 @@ class DistanceInstruction(Packet):
         return self._encapsulate(b'')
 
     @staticmethod
-    def unpack(data):
+    def unpack(_):
+        """
+            Unpack the DistanceInstruction Packet
+        """
         return DistanceInstruction()
 
 class DistanceSend(Packet):
@@ -98,6 +109,9 @@ class DistanceSend(Packet):
 
     @staticmethod
     def unpack(data):
+        """
+            Unpack the DistanceSend Packet
+        """
         print(data)
         payload = Packet.decapsulate(data)
         print(len(payload))
@@ -118,28 +132,35 @@ class MoveInstruction(Packet):
         self.left_motor_degrees = abs(int(left_motor_degrees))
         self.right_motor_speed = int(right_motor_speed) * (-1 if right_motor_degrees < 0 else 1)
         self.right_motor_degrees = abs(int(right_motor_degrees))
-        
+
 
     def pack(self):
-        payload = struct.pack("!hhhh", 
-            self.left_motor_degrees, 
+        payload = struct.pack("!hhhh",
+            self.left_motor_degrees,
             self.left_motor_speed,
             self.right_motor_degrees,
             self.right_motor_speed)
         return self._encapsulate(payload)
-    
+
     @staticmethod
     def unpack(data):
+        """
+            Unpack the MoveInstruction Packet
+        """
         payload = Packet.decapsulate(data)
-        left_motor_degrees, left_motor_speed, right_motor_degrees, right_motor_speed = struct.unpack("!hhhh", payload)
+        left_motor_degrees, left_motor_speed, right_motor_degrees,\
+              right_motor_speed = struct.unpack("!hhhh", payload)
         return MoveInstruction(
-            left_motor_degrees=left_motor_degrees, 
-            left_motor_speed=left_motor_speed, 
-            right_motor_degrees=right_motor_degrees, 
+            left_motor_degrees=left_motor_degrees,
+            left_motor_speed=left_motor_speed,
+            right_motor_degrees=right_motor_degrees,
             right_motor_speed=right_motor_speed
         )
 
 class RotateInstruction(MoveInstruction):
+    """
+        An instruction to rotate the Rover by a certain number of degrees
+    """
 
     def __init__(self, spin_rotation, motor_speed, R):
         """
@@ -157,21 +178,54 @@ class RotateInstruction(MoveInstruction):
             right_motor_speed=-motor_speed
         )
 
+class MiningInstruction(Packet):
+    """
+        Represents an instruction to mine a rock
+    """
+
+    CODE = 4
+
+    def __init__(self, time=5):
+        """
+            Create an instruction to mine a rock
+
+            :param time: Amount of time to mine rock for
+        """
+        super().__init__(self.CODE)
+        self.time = time
+    
+    def pack(self):
+        """
+            Pack the instruction to binary
+        """
+        payload = struct.pack("!h", self.time)
+        return self._encapsulate(payload)
+
+    @staticmethod
+    def unpack(data):
+        """
+            Unpack the instruction
+        """
+        payload = Packet.decapsulate(data)
+        time, = struct.unpack("!h", payload)
+        return MiningInstruction(time=time)
+
+    
 
 class SyncInstruction(Packet):
     """
         A sync instruction
     """
 
-    def __init__(self, expected):
-        super().__init__(
-            "sync",
-            expected=expected
-        )
-    
+    def __init__(self):
+        super().__init__("sync")
+
     @staticmethod
-    def unpack(data):
-        return SyncInstruction(data["expected"])
+    def unpack(_):
+        """
+            Unpack the SynInstruction packet
+        """
+        return SyncInstruction()
 
 class Directions(Packet):
     """
@@ -182,12 +236,12 @@ class Directions(Packet):
 
     def __init__(self, instructions=None, timeout=1000):
         super().__init__(self.CODE)
-        if instructions == None:
+        if instructions is None:
             self.instructions = []
         else:
             self.instructions = instructions
         self.timeout = timeout
-    
+
     def add_instruction(self, instruction):
         """
             Add an instruction to the list of instructions
@@ -211,7 +265,7 @@ class Directions(Packet):
             # Append the instruction
             payload += packed_instruction
         return self._encapsulate(bytes(payload))
-        
+
     @staticmethod
     def unpack(data):
         """
@@ -224,13 +278,13 @@ class Directions(Packet):
         # Create a new Directions object
         directions = Directions()
         current_index = 1
-        for i in range(no_instructions):
+        for _ in range(no_instructions):
             # Read the ith instruction
             # Read the size of the instruction
             instruction_size, = struct.unpack("!B", payload[current_index:current_index+1])
             current_index += 1
             # Now read the actual instruction
-            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s", 
+            packed_instruction, = struct.unpack("!" + str(instruction_size) + "s",
                 payload[current_index:current_index + instruction_size])
             current_index += instruction_size
             # Now get the code of this instruction
@@ -240,6 +294,8 @@ class Directions(Packet):
                 directions.add_instruction(MoveInstruction.unpack(packed_instruction))
             elif code == DistanceInstruction.CODE:
                 directions.add_instruction(DistanceInstruction())
+            elif code == MiningInstruction.CODE:
+                directions.add_instruction(MiningInstruction.unpack(packed_instruction))
         return directions
 
 CODES = {
@@ -248,8 +304,12 @@ CODES = {
     2: DistanceInstruction,
     3: DistanceSend,
     99: PlaySound,
+    4: MiningInstruction,
     100: Directions,
 }
 
 def class_by_code(code):
+    """
+        Get class by the code
+    """
     return CODES[code]

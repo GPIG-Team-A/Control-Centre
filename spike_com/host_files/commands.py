@@ -3,10 +3,10 @@
 """
 import math
 import clrprint
-from spike_com.host_files.protocol import MoveInstruction, RotateInstruction
+from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction
 
 static = {"WHEEL_RADIUS": 4.3, "R": 13.5/9}#6.25/4.3}
-var = {"speed": 10}
+var = {"speed": 10, "mining_time": 5}
 
 def move(distance):
     """
@@ -34,6 +34,12 @@ def rotate(deg_clockwise):
     return RotateInstruction(
         deg_clockwise, 20, static["R"]
     )
+
+def mine():
+    """
+        Mine command
+    """
+    return MiningInstruction(time=var["mining_time"])
 
 def set_variable(args):
     """

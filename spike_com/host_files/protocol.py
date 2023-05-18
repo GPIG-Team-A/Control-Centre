@@ -179,6 +179,39 @@ class RotateInstruction(MoveInstruction):
             right_motor_speed=-motor_speed
         )
 
+class MiningInstruction(Packet):
+    """
+        Represents an instruction to mine a rock
+    """
+
+    CODE = 4
+
+    def __init__(self, time=5):
+        """
+            Create an instruction to mine a rock
+
+            :param time: Amount of time to mine rock for
+        """
+        super().__init__(self.CODE)
+        self.time = time
+    
+    def pack(self):
+        """
+            Pack the instruction to binary
+        """
+        payload = struct.pack("!h", self.time)
+        return self._encapsulate(payload)
+
+    @staticmethod
+    def unpack(data):
+        """
+            Unpack the instruction
+        """
+        payload = Packet.decapsulate(data)
+        time, = struct.unpack("!h", payload)
+        return MiningInstruction(time=time)
+
+    
 
 class SyncInstruction(Packet):
     """
@@ -262,6 +295,8 @@ class Directions(Packet):
                 directions.add_instruction(MoveInstruction.unpack(packed_instruction))
             elif code == DistanceInstruction.CODE:
                 directions.add_instruction(DistanceInstruction())
+            elif code == MiningInstruction.CODE:
+                directions.add_instruction(MiningInstruction.unpack(packed_instruction))
         return directions
 
 CODES = {
@@ -270,6 +305,7 @@ CODES = {
     2: DistanceInstruction,
     3: DistanceSend,
     99: PlaySound,
+    4: MiningInstruction,
     100: Directions,
 }
 
