@@ -303,8 +303,8 @@ CODES = {
     1: MoveInstruction,
     2: DistanceInstruction,
     3: DistanceSend,
-    99: PlaySound,
     4: MiningInstruction,
+    99: PlaySound,
     100: Directions,
 }
 

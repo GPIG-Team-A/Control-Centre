@@ -4,7 +4,7 @@
 import time
 import clrprint
 from spike_com.host_files.protocol import Directions, Ping, DistanceSend
-from spike_com.host_files.commands import move, rotate, set_variable, mine
+from spike_com.host_files.commands import move, rotate, set_variable, mine, play
 from spike_com.host_files.communicate import CommunicationHandler
 
 
@@ -75,7 +75,8 @@ class Handler:
         """
         commands = {"MOVE": [move, 1],
             "ROTATE": [rotate, 1],
-            "MINE": [mine, 0]
+            "MINE": [mine, 0],
+            "PLAY": [play, 1]
         }
         directions = Directions()
         for item in instructions:
