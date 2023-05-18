@@ -233,6 +233,25 @@ async def main():
     handler.add_listener(PlaySound, play_sound_index)
     await handler.start()
 
+"""
+    stop log should be set to True when the program finishes running. 
+    ALT: continuous loop so multiple programs can be run and logs saved seperately with a different timestamp or over written each time ?
+"""
+stop_log = False
+
+async def log_motor():
+    """
+        Periodically log the motor speed/power
+        ALTERNATIVE: log rotation at set intervals and work from there
+    """
+    file = open("motor_log.txt")
+
+    while not stop_log:
+        file.writelines(str(WHEEL_PAIR.A.get_current_power()))
+        file.writelines(str(WHEEL_PAIR.B.get_current_power()))
+        time.sleep(0.25)
+    file.close()
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
