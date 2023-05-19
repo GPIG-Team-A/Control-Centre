@@ -618,7 +618,7 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
                       width_val: float) -> list[tuple[int]]:
     full_path = []
 
-    temp_end_nodes = [end_node for end_node in end_nodes]
+    temp_end_nodes = list(end_nodes)
 
     cur_node = start
 
@@ -630,9 +630,9 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
         for end_node in temp_end_nodes:
             # path = pathfind(environment, cur_node, end_node, width_val)
             # dist = get_total_path_distance(path)
-            dx = (end_node[0] - cur_node[0])
-            dy = (end_node[1] - cur_node[1])
-
+            dx = end_node[0] - cur_node[0]
+            dy = end_node[1] - cur_node[1]
+                  
             dist = np.sqrt(dx ** 2 + dy ** 2)
 
             if dist < cur_dist:
