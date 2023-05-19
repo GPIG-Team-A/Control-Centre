@@ -39,7 +39,7 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
-ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.75, 1.5
+ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 3.5, 3
 
 
 # TILE_WIDTH = 20
@@ -437,7 +437,7 @@ class Window(QMainWindow):
         cmd_thread.start()
         rover_command = cmd_thread.get_rover_command()
 
-        start_pos, _ = self.environment.get_start_end()
+        start_pos, end_poses = self.environment.get_start_end()
         start_angle, end_angle = self.environment.get_start_end_directions()
 
         rover.set_position(
@@ -450,12 +450,13 @@ class Window(QMainWindow):
 
         self.grid.repaint()
 
-        rover_commands = create_rover_instructions_from_path(path, start_angle, end_angle)
+        rover_commands = create_rover_instructions_from_path(end_poses, path, start_angle, end_angle)
 
         for cmd_type, value, time in rover_commands:
             rover_command.add_command(cmd_type, value, time)
 
         formatted_instructs = rover_instructions_to_json(rover_commands)
+        print(formatted_instructs)
 
         if self.spike_handler.communication_handler is not None:
             print("Sending instructions...")

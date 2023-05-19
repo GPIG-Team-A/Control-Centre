@@ -76,6 +76,16 @@ class SpikeHandler:
             Send instructions
         """
         def _send_instructions():
+            #instructions = [
+            #    {"type": "MOVE", "value": 100},
+            #    {"type": "ROTATE", "value": 90},
+            #    {"type": "MOVE", "value": 100},
+             #   {"type": "ROTATE", "value": 90},
+            #    {"type": "MOVE", "value": 100},
+             #   {"type": "ROTATE", "value": 90},
+            #    {"type": "MOVE", "value": 100},
+             #   {"type": "ROTATE", "value": 90},
+            #]
             self.communication_handler.send_instructions(instructions)
         thread = Thread(target=_send_instructions)
         thread.start()

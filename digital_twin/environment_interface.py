@@ -26,8 +26,8 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
 
     img = Image.open(image_filename, 'r')
 
-    width_pixels_per_tile = int(ceil(img.size[0] / (width_tiles - 2)))
-    height_pixels_per_tile = int(ceil(img.size[1] / (height_tiles - 2)))
+    width_pixels_per_tile = int((img.size[0] / (width_tiles - 2)))
+    height_pixels_per_tile = int((img.size[1] / (height_tiles - 2)))
 
     start = None
     end = []
@@ -84,15 +84,15 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     for end_node in end:
         cluster_id = -1
 
-        for i, other_cluster in enumerate(end_node_clusters):
+        for i in range(len(end_node_clusters)):
             if cluster_id != -1:
                 break
 
-            for other_end_node in other_cluster:
+            for other_end_node in end_node_clusters[i]:
                 if abs(end_node[0] - other_end_node[0]) <= 1 and \
                         abs(end_node[1] - other_end_node[1]) <= 1:
                     cluster_id = i
-                    other_cluster.append(end_node)
+                    end_node_clusters[i].append(end_node)
                     break
 
         if cluster_id == -1:

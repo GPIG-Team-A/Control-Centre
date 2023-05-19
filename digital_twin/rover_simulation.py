@@ -134,8 +134,10 @@ def simulate(env: Environment, trial_number: int, prob_failure: float,
         if len(path) == 0:
             print("FAILED")
             break
+        
+        print(path)
 
-        rover_cmds = create_rover_instructions_from_path(path, direction)
+        rover_cmds = create_rover_instructions_from_path(env.get_start_end(), path, direction)
 
         failed_trials = 0
 

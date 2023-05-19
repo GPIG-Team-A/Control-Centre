@@ -45,7 +45,7 @@ async def on_get_distance(handler, data):
     except Exception as e:
         log.log("get_distance failed, " + str(e))
 
-def do_safe_move(instruction):
+def do_safe_move(instruction, do_safe=True):
     # Get the directional yaw
     directional_yaw = GYROSENSOR.get_yaw()
     # Get current motor rotations
@@ -90,7 +90,7 @@ def do_safe_move(instruction):
             play_sound("/sounds/scream.raw")
             return False
 
-        if CORRECTION_SYSTEM_ENABLED and abs(current_yaw - directional_yaw) > tolerance:
+        if CORRECTION_SYSTEM_ENABLED and do_safe and abs(current_yaw - directional_yaw) > tolerance:
             log.log("Incorrect yaw detected... correcting")
             WHEEL_PAIR.stop()
             hub.display.show("1")
@@ -99,9 +99,14 @@ def do_safe_move(instruction):
             sign = lambda x: (-1, 1)[x<0]
             while abs(current_yaw - directional_yaw) > 0:
                 # Which way are we incorrect?
-                dir = sign(current_yaw - directional_yaw)
+                diff = current_yaw - directional_yaw
+                if diff >= 90:
+                    diff -= 180
+                if diff <= -90:
+                    diff += 180
+                dir = sign(diff)
                 # dir=1 means we turn left, dir=-1 means we turn right
-                if dir == 1:
+                if dir == 0:
                     WHEEL_PAIR.start(1, 0)
                 else:
                     WHEEL_PAIR.start(0, 1)
@@ -109,7 +114,7 @@ def do_safe_move(instruction):
                 current_yaw = GYROSENSOR.get_yaw()
             WHEEL_PAIR.stop()
             hub.display.show("2")
-            time.sleep(3)
+            time.sleep(1)
 
 
             # Begin instruction again
@@ -127,12 +132,10 @@ def do_safe_move(instruction):
                 right_motor_speed=20
             )
 
-            for i in range(20):
-                WHEEL_PAIR.run_for_degrees(
-                    new_instruction.left_motor_degrees,
-                    speed=i
-                )
-                time.sleep(0.1)
+            WHEEL_PAIR.run_for_degrees(
+                new_instruction.left_motor_degrees,
+                speed=i
+            )
             time.sleep(0.1)
         time.sleep(0.1)
 
@@ -175,7 +178,7 @@ def mine(instruction):
     mining_time = instruction.time
 
     # Drive forward until we get a touch on the pressure sensor
-    WHEEL_PAIR.start(a_speed=5, b_speed=5)
+    WHEEL_PAIR.start(a_speed=15, b_speed=15)
     
     elapsed = 0
     while not PUSH_SENSOR.is_pushed():
@@ -191,21 +194,22 @@ def mine(instruction):
     time.sleep(mining_time)
 
     # Now reverse back
-    WHEEL_PAIR.start(a_speed=-5, b_speed=-5)
+    WHEEL_PAIR.start(a_speed=-15, b_speed=-15)
     time.sleep(elapsed)
     WHEEL_PAIR.stop()
 
 
 async def on_new_directions(handler, directions):
     for instruction in directions.instructions:
-        hub.sound.beep(1000)
+        #hub.sound.beep(1000)
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                do_safe_move(instruction)
+                success = do_safe_move(instruction, do_safe=instruction.do_safe)
             except Exception as e:
                 log.log(str(e))
             log.log("Finished move instruction")
+            if not success: break
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)

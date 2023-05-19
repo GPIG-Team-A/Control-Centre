@@ -5,12 +5,11 @@ import math
 import clrprint
 from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction
 
-static = {"WHEEL_RADIUS": 4.3, "R": 11/8.7}#6.25/4.3}
-var = {"speed": 10}
+static = {"WHEEL_RADIUS": 4.3, "R": 11/8.5}#6.25/4.3}
+var = {"speed": 25, "mining_time": 5}
 
 def move(distance):
     """
-    
     :param distance: 
     """
     if isinstance(distance, list):

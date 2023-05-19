@@ -29,13 +29,15 @@ class RoverCommandType(Enum):
     Command to set the angle of the rover 
     MUST BE SET AS SINGLE ELEMENT TUPLE
     """
+    MINE = 5
 
 
 ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE,
                                        RoverCommandType.ROTATE,
                                        RoverCommandType.RPMS,
                                        RoverCommandType.SET_POSITION,
-                                       RoverCommandType.SET_ANGLE]
+                                       RoverCommandType.SET_ANGLE,
+                                       RoverCommandType.MINE]
 
 
 class RoverCommands:
@@ -192,11 +194,15 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
         elif command_type == RoverCommandType.ROTATE:
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
+        elif command_type == RoverCommandType.MINE:
+            value = 0
+            named_type = "MINE"
         to_export.append({"type":named_type, "value":value})
     return to_export
 
 
-def create_rover_instructions_from_path(path: list[tuple[int]],
+def create_rover_instructions_from_path(end_points: list[tuple[int]],
+                                        path: list[tuple[int]],
                                         rover_direction: float = 0,
                                         rover_final_direction: float = 0)\
         -> list[tuple[float]]:
@@ -246,6 +252,21 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
 
         # Adds the move forward command
         cmds.append((RoverCommandType.MOVE, distance, time))
+
+        if (path_x, path_y) in end_points:
+            angle_change = -np.pi / 2 - new_angle
+
+            if angle_change < -np.pi:
+                angle_change += np.pi * 2
+
+            if angle_change > np.pi:
+                angle_change -= np.pi * 2
+
+            cmds.append((RoverCommandType.ROTATE, angle_change,  0.2))
+            cmds.append((RoverCommandType.MINE, 0, 1))
+
+            new_angle = -np.pi / 2
+
 
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)

@@ -230,7 +230,7 @@ class Environment:
                 self.set_tile(pos[0], pos[1], EnvType.OBSTACLE)
                 assigned += 1
 
-    def get_path(self, width_val: float = DISTANCE_BETWEEN_MOTORS,
+    def get_path(self, width_val: float = DISTANCE_BETWEEN_MOTORS * 3.5,
                  should_generate: bool = True) -> list[tuple[int]]:
         """
         :param width_val: The width of the line of sight

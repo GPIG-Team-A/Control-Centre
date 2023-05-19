@@ -105,20 +105,22 @@ class MoveInstruction(Packet):
     CODE = 1
 
     def __init__(self, left_motor_degrees=360, left_motor_speed=100,
-                right_motor_degrees=360, right_motor_speed=100):
+                right_motor_degrees=360, right_motor_speed=100, do_safe=True):
         super().__init__(self.CODE)
         self.left_motor_speed = int(left_motor_speed) * (-1 if left_motor_degrees < 0 else 1)
-        self.left_motor_degrees = abs(int(left_motor_degrees))
+        self.left_motor_degrees = abs(round(left_motor_degrees))
         self.right_motor_speed = int(right_motor_speed) * (-1 if right_motor_degrees < 0 else 1)
-        self.right_motor_degrees = abs(int(right_motor_degrees))
+        self.right_motor_degrees = abs(round(right_motor_degrees))
+        self.do_safe = do_safe
 
 
     def pack(self):
-        payload = struct.pack("!hhhh",
+        payload = struct.pack("!hhhhh",
             self.left_motor_degrees,
             self.left_motor_speed,
             self.right_motor_degrees,
-            self.right_motor_speed)
+            self.right_motor_speed,
+            1 if self.do_safe else 0)
         return self._encapsulate(payload)
 
     @staticmethod
@@ -128,12 +130,13 @@ class MoveInstruction(Packet):
         """
         payload = Packet.decapsulate(data)
         left_motor_degrees, left_motor_speed, right_motor_degrees,\
-              right_motor_speed = struct.unpack("!hhhh", payload)
+              right_motor_speed, do_safe = struct.unpack("!hhhhh", payload)
         return MoveInstruction(
             left_motor_degrees=left_motor_degrees,
             left_motor_speed=left_motor_speed,
             right_motor_degrees=right_motor_degrees,
-            right_motor_speed=right_motor_speed
+            right_motor_speed=right_motor_speed,
+            do_safe=True if do_safe == 1 else False
         )
 
 class RotateInstruction(MoveInstruction):
@@ -154,7 +157,8 @@ class RotateInstruction(MoveInstruction):
             left_motor_degrees=spin_rotation * R,
             left_motor_speed=motor_speed,
             right_motor_degrees=spin_rotation * R,
-            right_motor_speed=-motor_speed
+            right_motor_speed=-motor_speed,
+            do_safe=False
         )
 
 class MiningInstruction(Packet):
