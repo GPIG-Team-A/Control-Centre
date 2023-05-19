@@ -8,7 +8,7 @@ from digital_twin.environment import Environment, EnvType, get_environment_type_
 from digital_twin.constants import METERS_PER_TILE
 
 
-def image_to_environment(width: float, height: float, image_filename: str = "resources/env.png")\
+def image_to_environment(width: float, height: float, image_filename: str = "resources/env.png") \
         -> Environment:
     """
     Contructs an Environment using an image
@@ -30,7 +30,7 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     height_pixels_per_tile = int(ceil(img.size[1] / (height_tiles - 2)))
 
     start = None
-    end = None
+    end = []
 
     for y in range(1, height_tiles - 1):
         for x in range(1, width_tiles - 1):
@@ -48,6 +48,9 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
 
                     color = img.getpixel((coord_x, coord_y))
 
+                    if len(color) == 4:
+                        color = (color[0], color[1], color[2])
+
                     if color not in color_list:
                         color_list.append(color)
                         size_list.append(1)
@@ -59,9 +62,9 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
             elif EnvType.START.value in color_list and start is None:
                 chosen_color = EnvType.START.value
                 start = (x, y)
-            elif EnvType.END.value in color_list and end is None:
+            elif EnvType.END.value in color_list:
                 chosen_color = EnvType.END.value
-                end = (x, y)
+                end.append((x, y))
 
             env_type = get_environment_type_from_value(chosen_color)
 
@@ -76,6 +79,38 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
         env.set_tile(0, y, EnvType.OBSTACLE)
         env.set_tile(width_tiles + 1, y, EnvType.OBSTACLE)
 
-    env.set_start_end(start, end)
+    end_node_clusters = []
+
+    for end_node in end:
+        cluster_id = -1
+
+        for i, other_cluster in enumerate(end_node_clusters):
+            if cluster_id != -1:
+                break
+
+            for other_end_node in other_cluster:
+                if abs(end_node[0] - other_end_node[0]) <= 1 and \
+                        abs(end_node[1] - other_end_node[1]) <= 1:
+                    cluster_id = i
+                    other_cluster.append(end_node)
+                    break
+
+        if cluster_id == -1:
+            end_node_clusters.append([end_node])
+
+    end_nodes = []
+
+    for cluster in end_node_clusters:
+        avg_x, avg_y = 0, 0
+
+        for node in cluster:
+            avg_x += node[0]
+            avg_y += node[1]
+
+        avg_x, avg_y = avg_x // len(cluster), avg_y // len(cluster)
+
+        end_nodes.append((avg_x, avg_y))
+
+    env.set_start_end(start, end_nodes)
 
     return env

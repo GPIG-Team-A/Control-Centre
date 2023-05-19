@@ -121,7 +121,8 @@ class SpikeHandler:
             Disconnect from Hub
         """
         try:
-            subprocess.run(["sudo", "rfcomm", "release", "0"], check=True)
+            if os.name != "nt":
+                subprocess.run(["sudo", "rfcomm", "release", "0"], check=True)
         except subprocess.CalledProcessError as error:
             print("[Spike-Com] Error unable to bind: ", error)
         print("[Spike-Com] Disconnected!")

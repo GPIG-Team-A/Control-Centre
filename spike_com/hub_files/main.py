@@ -137,7 +137,10 @@ def do_safe_move(instruction):
         time.sleep(0.1)
 
     yaw_differences = [abs(x - directional_yaw) for x in recorded_yaws]
-    average_difference = sum(yaw_differences) / len(yaw_differences)
+    if len(yaw_differences) > 0:
+        average_difference = sum(yaw_differences) / len(yaw_differences)
+    else:
+        average_difference = 0
 
     # Calculating RPMs from rotations
     calculated_rotation_offsets = []
@@ -199,12 +202,10 @@ async def on_new_directions(handler, directions):
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                complete = do_safe_move(instruction)
+                do_safe_move(instruction)
             except Exception as e:
-                log.log(str(e))
+                log.log(str(e.with_traceback()))
             log.log("Finished move instruction")
-            if not complete:
-                break
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)

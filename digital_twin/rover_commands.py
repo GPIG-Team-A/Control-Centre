@@ -124,6 +124,10 @@ class RoverCommands:
             command_type, value, time_units_left = self._current_command
             command_type = ROVER_TYPES[int(command_type)]
 
+            if np.isnan(value):
+                self._current_command = None
+                return
+
             if command_type == RoverCommandType.MOVE:
                 rover.move(value)
             elif command_type == RoverCommandType.ROTATE:

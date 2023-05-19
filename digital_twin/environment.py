@@ -59,7 +59,7 @@ class Environment:
     _start: tuple[int]
         The starting position of the rover
 
-    _end: tuple[int]
+    _end: list[tuple[int]]
         The goal position of the rover
 
     _path: list[tuple[int]]
@@ -109,7 +109,7 @@ class Environment:
 
         self._start: tuple[int] = None
         """ The starting node, which the rover will begin at """
-        self._end: tuple[int] = None
+        self._end: list[tuple[int]] = None
         """ The goal node, which the rover will work towards """
 
         self._start_dir: float = 0
@@ -123,7 +123,7 @@ class Environment:
             to end without encountering any obstacles
         """
 
-    def set_start_end(self, start: tuple[int], end: tuple[int]):
+    def set_start_end(self, start: tuple[int], end: list[tuple[int]]):
         """
         Sets the starting and goal positions for the rover within the environment
 
@@ -133,10 +133,10 @@ class Environment:
         self._start = start
         self._end = end
 
-        self.set_tile(start[0], start[1], EnvType.START)
-
-        if end is not None:
-            self.set_tile(end[0], end[1], EnvType.END)
+        # self.set_tile(start[0], start[1], EnvType.START)
+        #
+        # if end is not None:
+        #     self.set_tile(end[0], end[1], EnvType.END)
 
     def set_start_direction(self, new_start_direction: float):
         """
@@ -202,7 +202,7 @@ class Environment:
         """
         return len(self._map[0]), len(self._map)
 
-    def get_start_end(self) -> tuple[tuple[int], tuple[int]]:
+    def get_start_end(self) -> tuple[tuple[int], list[tuple[int]]]:
         """
         :return: The start and end coordinates of course in the format
                  (startX, startY), (endX, endY)
@@ -244,9 +244,12 @@ class Environment:
         if self._start is None or self._end is None:
             return []
 
+        if len(self._end) == 0:
+            return []
+
         # If there is no cached path then a new path is created using Theta*
         if should_generate and self._path is None:
-            self._path = pathfind(self, self._start, self._end, width_val)
+            self._path = pathfind_multiple(self, self._start, self._end, width_val)
 
         # Returns the cached path
         return self._path
@@ -609,3 +612,64 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int],
     print("PATH FINDING COMPLETE")
 
     return path
+
+
+def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: list[tuple[int]],
+                      width_val: float) -> list[tuple[int]]:
+    """
+        TODO: Docstring
+    """
+    full_path = []
+
+    temp_end_nodes = list(end_nodes)
+
+    cur_node = start
+
+    while len(temp_end_nodes) > 0:
+        cur_dist = float("inf")
+        cur_end_node = None
+        cur_path = []
+
+        for end_node in temp_end_nodes:
+            # path = pathfind(environment, cur_node, end_node, width_val)
+            # dist = get_total_path_distance(path)
+            dx = end_node[0] - cur_node[0]
+            dy = end_node[1] - cur_node[1]
+                  
+            dist = np.sqrt(dx ** 2 + dy ** 2)
+
+            if dist < cur_dist:
+                cur_dist = dist
+                cur_end_node = end_node
+
+        new_tmp_nodes = [end_node for end_node in temp_end_nodes if end_node != cur_end_node]
+        temp_end_nodes = new_tmp_nodes
+        cur_path = pathfind(environment, cur_node, cur_end_node, width_val)
+
+        for path_node in cur_path:
+            if path_node not in full_path:
+                full_path.append(path_node)
+
+        cur_node = cur_end_node
+
+    return full_path
+
+
+def get_total_path_distance(path: list[tuple[int]]) -> float:
+    """
+    TODO: Docstring
+    """
+    prev_node = path[0]
+
+    total_dist = 0
+
+    for i in range(1, len(path)):
+        cur_node = path[i]
+
+        dx, dy = cur_node[0] - prev_node[0], cur_node[1] - prev_node[1]
+
+        dist = np.sqrt(dx ** 2 + dy ** 2)
+
+        total_dist += dist
+
+    return total_dist

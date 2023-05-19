@@ -1,17 +1,17 @@
 """
 The GUI handler of the system
 """
-
+import os
 import sys
 import threading
 import ctypes
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QSize
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QIcon
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -25,8 +25,9 @@ from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
 
 
-MY_APP_ID = 'gooogle.wallacerover.controlcentre.1.0.0'
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(MY_APP_ID)
+if os.name == "nt":
+    MY_APP_ID = 'gooogle.wallacerover.controlcentre.1.0.0'
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(MY_APP_ID)
 
 # Constants
 SCREEN_WIDTH = 1000
@@ -37,6 +38,8 @@ TILE_START_X = 10
 """ The starting x coordinate of the tile map """
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
+
+ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.5, 1.75
 
 
 # TILE_WIDTH = 20
@@ -133,10 +136,12 @@ class Grid(QWidget):
                     painter.drawRect(object_rect.translated(pos_x, pos_y))
 
         painter.setBrush(Qt.green)
-        _, (goal_pos_x, goal_pos_y) = self.environment.get_start_end()
-        goal_pos_x, goal_pos_y = TILE_START_Y + goal_pos_x * (self.square_size + 2), \
-                                 TILE_START_Y + goal_pos_y * (self.square_size + 2)
-        painter.drawRect(object_rect.translated(goal_pos_x, goal_pos_y))
+        _, goal_pos = self.environment.get_start_end()
+
+        for goal_pos_x, goal_pos_y in goal_pos:
+            goal_pos_x, goal_pos_y = TILE_START_Y + goal_pos_x * (self.square_size + 2), \
+                                     TILE_START_Y + goal_pos_y * (self.square_size + 2)
+            painter.drawRect(object_rect.translated(goal_pos_x, goal_pos_y))
 
         path = self.environment.get_path(should_generate=False)
 
@@ -370,7 +375,8 @@ class Window(QMainWindow):
         """
             Load an environment into the UI
         """
-        self.environment = image_to_environment(2.5, 2.5, image_filename=image_filename)
+        self.environment = image_to_environment(ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH, 
+            image_filename=image_filename)
         self.environment.set_start_direction(-numpy.pi / 2)
 
         start_pos, _ = self.environment.get_start_end()
@@ -496,9 +502,9 @@ def setup() -> int:
     """
     app = QApplication(sys.argv)
 
-    app_icon = QIcon()
-    app_icon.addFile("resources/Wallace.png", QSize(32, 32))
-    app.setWindowIcon(app_icon)
+    # app_icon = QIcon()
+    # app_icon.addFile("resources/Wallace.png", QSize(32, 32))
+    # app.setWindowIcon(app_icon)
 
     win = Window()
     win.show()
