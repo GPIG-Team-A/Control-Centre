@@ -84,15 +84,15 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     for end_node in end:
         cluster_id = -1
 
-        for i in range(len(end_node_clusters)):
+        for i, other_cluster in enumerate(end_node_clusters):
             if cluster_id != -1:
                 break
 
-            for other_end_node in end_node_clusters[i]:
+            for other_end_node in other_cluster:
                 if abs(end_node[0] - other_end_node[0]) <= 1 and \
                         abs(end_node[1] - other_end_node[1]) <= 1:
                     cluster_id = i
-                    end_node_clusters[i].append(end_node)
+                    other_cluster.append(end_node)
                     break
 
         if cluster_id == -1:

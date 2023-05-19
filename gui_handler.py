@@ -7,11 +7,11 @@ import threading
 import ctypes
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QSize
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QIcon
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -38,6 +38,8 @@ TILE_START_X = 10
 """ The starting x coordinate of the tile map """
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
+
+ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.5, 1.75
 
 
 # TILE_WIDTH = 20
@@ -349,7 +351,6 @@ class Window(QMainWindow):
         log = self.spike_handler.get_log()
         if log:
             upload_log_file(log)
-            print("Uploading log file...")
 
     def open_load_environment_dialog(self):
         """
@@ -374,7 +375,8 @@ class Window(QMainWindow):
         """
             Load an environment into the UI
         """
-        self.environment = image_to_environment(1.75, 1.5, image_filename=image_filename)
+        self.environment = image_to_environment(ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH, 
+            image_filename=image_filename)
         self.environment.set_start_direction(-numpy.pi / 2)
 
         start_pos, _ = self.environment.get_start_end()

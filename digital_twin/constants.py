@@ -2,7 +2,7 @@
 Global constants used within the decision centre project
 """
 
-DISTANCE_BETWEEN_MOTORS: float = 0.088 + 0.014
+DISTANCE_BETWEEN_MOTORS: float = 0.11
 """ The distance between the two motors in meters """
 
 WHEEL_CIRCUMFERENCE: float = 0.276

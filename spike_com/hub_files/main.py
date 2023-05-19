@@ -17,12 +17,14 @@ from motor_pair import MotorPair
 from sensor import Ultrasonic
 from gyrosensor import GyroSensor
 from light_sensor import LightSensor, Colour
+from push_sensor import PushSensor
 import log
 
 LEFT_WHEEL = Motor("A")
 RIGHT_WHEEL = Motor("B", inverted=True)
 WHEEL_PAIR = MotorPair(LEFT_WHEEL, RIGHT_WHEEL)
-DISTANCE_SENSOR = Ultrasonic("C")
+DISTANCE_SENSOR = Ultrasonic("D")
+PUSH_SENSOR = PushSensor("E")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
@@ -31,7 +33,6 @@ CORRECTION_SYSTEM_ENABLED = False
 def play_sound(sound_file):
     hub.sound.play(sound_file)
     time.sleep(1)
-
 
 async def on_ping(handler, data):
     handler.send(Ping())
@@ -58,18 +59,7 @@ def do_safe_move(instruction):
         instruction.left_motor_degrees,
         speed=(instruction.left_motor_speed, instruction.right_motor_speed)
     )
-    #   time.sleep(0.1)
 
-    """
-    LEFT_WHEEL.run_for_degrees(
-        instruction.left_motor_degrees, 
-        speed=20
-    )
-    RIGHT_WHEEL.run_for_degrees(
-        instruction.right_motor_degrees, 
-        speed=20
-    )
-    """
     time.sleep(0.1) # Allow time for the motors to start
 
     # Monitoring
@@ -143,22 +133,14 @@ def do_safe_move(instruction):
                     speed=i
                 )
                 time.sleep(0.1)
-
-            """
-            LEFT_WHEEL.run_for_degrees(
-                new_instruction.left_motor_degrees, 
-                speed=new_instruction.left_motor_speed
-            )
-            RIGHT_WHEEL.run_for_degrees(
-                new_instruction.right_motor_degrees, 
-                speed=new_instruction.right_motor_speed
-            )
-            """
             time.sleep(0.1)
         time.sleep(0.1)
 
     yaw_differences = [abs(x - directional_yaw) for x in recorded_yaws]
-    average_difference = sum(yaw_differences) / len(yaw_differences)
+    if len(yaw_differences) > 0:
+        average_difference = sum(yaw_differences) / len(yaw_differences)
+    else:
+        average_difference = 0
 
     # Calculating RPMs from rotations
     calculated_rotation_offsets = []
@@ -186,6 +168,33 @@ def do_safe_move(instruction):
     log.log("#######SAFE MOVE DIGEST########")
     return True
 
+def mine(instruction):
+    """
+        Perform a mining command
+    """
+    mining_time = instruction.time
+
+    # Drive forward until we get a touch on the pressure sensor
+    WHEEL_PAIR.start(a_speed=5, b_speed=5)
+    
+    elapsed = 0
+    while not PUSH_SENSOR.is_pushed():
+        # TODO: Some form of timeout
+        time.sleep(0.1)
+        elapsed += 0.1
+    
+    # Sensor pushed, stop wheels
+    WHEEL_PAIR.stop()
+
+    # Start mining
+    play_sound("/sounds/digging.raw")
+    time.sleep(mining_time)
+
+    # Now reverse back
+    WHEEL_PAIR.start(a_speed=-5, b_speed=-5)
+    time.sleep(elapsed)
+    WHEEL_PAIR.stop()
+
 
 async def on_new_directions(handler, directions):
     for instruction in directions.instructions:
@@ -193,17 +202,22 @@ async def on_new_directions(handler, directions):
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                complete = do_safe_move(instruction)
+                do_safe_move(instruction)
             except Exception as e:
-                log.log(str(e))
+                log.log(str(e.with_traceback()))
             log.log("Finished move instruction")
-            if not complete:
-                break
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)
             log.log("Finished DistanceInstruction")
-        time.sleep(5)
+        elif isinstance(instruction, MiningInstruction):
+            log.log("MiningInstruction")
+            try:
+                mine(instruction)
+            except Exception as e:
+                log.log(str(e))
+            log.log("Finished MiningInstruction")
+        time.sleep(1)
 
 async def main():
     # Reset log
