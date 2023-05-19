@@ -644,7 +644,11 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
         cur_path = pathfind(environment, cur_node, cur_end_node, width_val)
 
         for path_node in cur_path:
-            if path_node not in full_path:
+            if len(full_path) == 0:
+                full_path.append(path_node)
+                continue
+
+            if path_node != full_path[-1]:
                 full_path.append(path_node)
 
         cur_node = cur_end_node

@@ -374,7 +374,7 @@ class Window(QMainWindow):
         """
             Load an environment into the UI
         """
-        self.environment = image_to_environment(3.5, 3, image_filename=image_filename)
+        self.environment = image_to_environment(1.75, 1.5, image_filename=image_filename)
         self.environment.set_start_direction(-numpy.pi / 2)
 
         start_pos, _ = self.environment.get_start_end()

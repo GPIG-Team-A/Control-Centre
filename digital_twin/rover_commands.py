@@ -238,11 +238,8 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
         # Gets the distance that the rover will traverse in meters
         distance = np.sqrt(dx * dx + dy * dy) * constants.METERS_PER_TILE
 
-        # The maximum speed in m/s
-        max_speed_rpm = 1
-
         # The time the rover will move at 'max_speed_rpm' to reach its next goal
-        time = distance / max_speed_rpm
+        time = distance / constants.ROVER_MAX_SPEED
 
         # Adds the move forward command
         cmds.append((RoverCommandType.MOVE, distance, time))
