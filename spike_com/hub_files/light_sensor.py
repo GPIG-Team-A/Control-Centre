@@ -6,6 +6,7 @@ import hub
 class Colour:
     BLACK = 0
     RED = 9
+    WHITE = 10
 
 class LightSensor:
 
