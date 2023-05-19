@@ -4,7 +4,6 @@
 import subprocess
 import os
 import time
-import socket
 from threading import Thread
 from spike_com.host_files.main import Handler
 

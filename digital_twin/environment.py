@@ -616,6 +616,9 @@ def pathfind(environment: Environment, start: tuple[int], end: tuple[int],
 
 def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: list[tuple[int]],
                       width_val: float) -> list[tuple[int]]:
+    """
+        TODO: Docstring
+    """
     full_path = []
 
     temp_end_nodes = list(end_nodes)
@@ -653,6 +656,9 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
 
 
 def get_total_path_distance(path: list[tuple[int]]) -> float:
+    """
+    TODO: Docstring
+    """
     prev_node = path[0]
 
     total_dist = 0
