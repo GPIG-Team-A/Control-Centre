@@ -7,11 +7,11 @@ import threading
 import ctypes
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QSize
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QIcon
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -375,7 +375,8 @@ class Window(QMainWindow):
         """
             Load an environment into the UI
         """
-        self.environment = image_to_environment(ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH, image_filename=image_filename)
+        self.environment = image_to_environment(ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH, 
+            image_filename=image_filename)
         self.environment.set_start_direction(-numpy.pi / 2)
 
         start_pos, _ = self.environment.get_start_end()

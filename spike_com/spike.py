@@ -4,7 +4,6 @@
 import subprocess
 import os
 import time
-import socket
 from threading import Thread
 from spike_com.host_files.main import Handler
 
@@ -26,11 +25,7 @@ class SpikeHandler:
             Bind to port
         """
         try:
-            if os.name == "nt":
-                s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-                s.bind(("00:00:00:00:00:00", 0))
-            else:
-                subprocess.run(["sudo", "rfcomm", "bind", "0", MAC], check=True)
+            subprocess.run(["sudo", "rfcomm", "bind", "0", MAC], check=True)
         except subprocess.CalledProcessError as error:
             print("[Spike-Com] Error unable to bind: ", error)
             self.disconnect()
