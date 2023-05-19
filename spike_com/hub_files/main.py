@@ -74,8 +74,8 @@ def do_safe_move(instruction):
         recorded_rotations.append((LEFT_WHEEL.get_rotation(), RIGHT_WHEEL.get_rotation()))
 
         # Check interrupts
-        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.BLACK:
-            log.log("INTERRUPT: Registered black on bottom sensor... stopping")
+        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE:
+            log.log("INTERRUPT: Registered white on bottom sensor... stopping")
             WHEEL_PAIR.stop()
             play_sound("/sounds/scream.raw")
             return False
@@ -204,7 +204,7 @@ async def on_new_directions(handler, directions):
             try:
                 do_safe_move(instruction)
             except Exception as e:
-                log.log(str(e.with_traceback()))
+                log.log(str(e))
             log.log("Finished move instruction")
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
