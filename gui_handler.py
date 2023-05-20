@@ -39,9 +39,8 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
-<<<<<<< HEAD
 ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.75, 1.5
-
+WIN_TITLE="GROMIT"
 
 # TILE_WIDTH = 20
 # """ The width of each tile in pixels """
