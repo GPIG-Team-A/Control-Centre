@@ -5,10 +5,13 @@ Handles the commands the rover will receive
 
 from enum import Enum
 from queue import Queue
+from typing import Any
+
 import numpy as np
 from digital_twin import constants
 from digital_twin.rover import Rover
 from digital_twin.maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
+from digital_twin.environment import Environment
 
 
 class RoverCommandType(Enum):
@@ -124,9 +127,10 @@ class RoverCommands:
             command_type, value, time_units_left = self._current_command
             command_type = ROVER_TYPES[int(command_type)]
 
-            if np.isnan(value):
-                self._current_command = None
-                return
+            if type(value) == float:
+                if np.isnan(value):
+                    self._current_command = None
+                    return
 
             if command_type == RoverCommandType.MOVE:
                 rover.move(value)
@@ -194,6 +198,49 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
             named_type = "ROTATE"
         to_export.append({"type":named_type, "value":value})
     return to_export
+
+
+def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str, Any]]):
+    cmds = []
+
+    start_pos = env.get_start_end()[0]
+
+    start_pos = ((start_pos[0] + 0.5) * constants.METERS_PER_TILE,
+                 (start_pos[1] + 0.5) * constants.METERS_PER_TILE)
+
+    last_end_rotation = env.get_start_end_directions()[0]
+
+    cmds.append((RoverCommandType.SET_POSITION, start_pos, 0.1))
+    cmds.append((RoverCommandType.SET_ANGLE, (last_end_rotation,), 0.1))
+
+    for log_dict in log_obj:
+        if len(log_dict) == 0:
+            continue
+
+        start_rotation = log_dict["Starting Yaw"] * np.pi / 180
+        end_rotation = log_dict["Ending Yaw"] * np.pi / 180
+
+        rotation_angle = start_rotation - last_end_rotation
+
+        if rotation_angle > np.pi:
+            rotation_angle -= np.pi * 2
+
+        if rotation_angle < -np.pi:
+            rotation_angle += np.pi * 2
+
+        cmds.append((RoverCommandType.ROTATE, rotation_angle, 0.2))
+
+        last_end_rotation = end_rotation
+
+        motor_powers = log_dict["Power Values"]
+
+        for motor1_power, motor2_power in motor_powers:
+            motor1_power = motor1_power / 100 * constants.POWER_TO_SPEED_CONVERSION
+            motor2_power = motor2_power / 100 * constants.POWER_TO_SPEED_CONVERSION
+
+            cmds.append((RoverCommandType.RPMS, (motor1_power, motor2_power), 0.1))
+
+    return cmds
 
 
 def create_rover_instructions_from_path(path: list[tuple[int]],

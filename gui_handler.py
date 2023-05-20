@@ -1,10 +1,13 @@
 """
 The GUI handler of the system
 """
+import datetime
+import json
 import os
 import sys
 import threading
 import ctypes
+from typing import IO, Any
 
 import numpy
 from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
@@ -19,7 +22,7 @@ from digital_twin import constants
 from digital_twin.environment import EnvType
 from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path, \
-    rover_instructions_to_json
+    rover_instructions_to_json, create_rover_instructions_from_logs
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
@@ -39,7 +42,7 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
-ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.75, 1.5
+ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 3.5, 3
 
 
 # TILE_WIDTH = 20
@@ -180,6 +183,46 @@ class Grid(QWidget):
         painter.end()
 
 
+def parse_log_file(log_file: IO) -> list[dict[str, Any]]:
+    data_list = []
+
+    while (line := log_file.readline()) != "":
+        if "MoveInstruction" in line:
+            json_encoding = ""
+
+            while (line := log_file.readline()) != "":
+                if "Finished move instruction" in line:
+                    break
+
+                if "INTERRUPT" not in line and "#" not in line and line != "":
+                    formatted_line = ""
+
+                    # Removes date time
+                    line_split = line.split("] ")
+
+                    formatted_line += line_split[1]
+                    for chunk in line_split[2:]:
+                        formatted_line += "] " + chunk
+
+                    formatted_line = formatted_line.strip()
+                    formatted_line = formatted_line.replace("(", "[").\
+                        replace(")", "]")
+
+                    # If the
+                    if ":" in formatted_line:
+                        formatted_line = "\"" + formatted_line.replace(":", "\":") + ","
+
+                    json_encoding += formatted_line
+            json_encoding = "{" + json_encoding[:-1] + "}"
+
+            try:
+                json_obj = json.loads(json_encoding)
+                data_list.append(json_obj)
+            except json.JSONDecodeError:
+                pass
+    return data_list
+
+
 class Window(QMainWindow):
     """Main Window."""
 
@@ -189,6 +232,7 @@ class Window(QMainWindow):
         """Initializer."""
         super().__init__(parent)
 
+        self.cmd_thread = None
         self.environment = None
         self.grid = None
         self.spike_handler = SpikeHandler()
@@ -250,6 +294,8 @@ class Window(QMainWindow):
         self.new_action = QAction(self)
         self.open_action = QAction("&Open...", self)
         self.open_action.triggered.connect(self.open_load_environment_dialog)
+        self.load_real_motors_action = QAction("&Load Motor Logs...", self)
+        self.load_real_motors_action.triggered.connect(self.load_real_motors)
         self.save_action = QAction("&Save", self)
         self.exit_action = QAction("&Exit", self)
 
@@ -281,6 +327,7 @@ class Window(QMainWindow):
         menu_bar.addMenu(file_menu)
         file_menu.addAction(self.connect_action)
         file_menu.addAction(self.open_action)
+        file_menu.addAction(self.load_real_motors_action)
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
         # Creating menus using a title
@@ -352,6 +399,11 @@ class Window(QMainWindow):
         if log:
             upload_log_file(log)
 
+            with open(f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+                      f" LOG.txt", mode='w') as log_file:
+                log_file.write(log)
+                log_file.close()
+
     def open_load_environment_dialog(self):
         """
             Open interaction dialog to open a new environment png file
@@ -389,6 +441,33 @@ class Window(QMainWindow):
 
         # Load the grid UI
         self.add_grid(self.environment)
+
+    def load_real_motors(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self,
+                                                   "Select Motor Logs", "./logs",
+                                                   "Log files (*.txt)", options=options)
+
+        if file_name:
+            with open(file_name, mode='r') as log_file:
+                log_data = parse_log_file(log_file)
+                cmds = create_rover_instructions_from_logs(self.environment, log_data)
+
+                if not self.cmd_thread:
+                    self.cmd_thread = RoverCommandThread(self.environment.get_rover())
+                    self.cmd_thread.start()
+
+                rover_command = self.cmd_thread.get_rover_command()
+
+                for command_type, value, time in cmds:
+                    rover_command.add_command(command_type, value, time)
+
+                while not rover_command.is_empty():
+                    QCoreApplication.processEvents()
+                    self.grid.repaint()
+
+                log_file.close()
 
     def _show_message_box(self, icon, title, text):
         """
@@ -433,9 +512,9 @@ class Window(QMainWindow):
                                                * numpy.pi / 2)
 
         # Start rover command thread
-        cmd_thread = RoverCommandThread(rover)
-        cmd_thread.start()
-        rover_command = cmd_thread.get_rover_command()
+        self.cmd_thread = RoverCommandThread(rover)
+        self.cmd_thread.start()
+        rover_command = self.cmd_thread.get_rover_command()
 
         start_pos, _ = self.environment.get_start_end()
         start_angle, end_angle = self.environment.get_start_end_directions()
