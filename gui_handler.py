@@ -16,7 +16,7 @@ from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidat
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
 from digital_twin import constants
-from digital_twin.environment import EnvType
+from digital_twin.environment import EnvType, Environment
 from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path, \
     rover_instructions_to_json
@@ -188,7 +188,7 @@ class Window(QMainWindow):
         """Initializer."""
         super().__init__(parent)
 
-        self.environment = None
+        self.environment = Environment(0,0)
         self.grid = None
         self.spike_handler = SpikeHandler()
         self.setWindowTitle(WIN_TITLE)
@@ -245,6 +245,30 @@ class Window(QMainWindow):
         dlg = additional_windows.ConfigurationDialog()
         dlg.exec()
 
+    def save_path_dialog(self):
+        """
+            Open interaction dialog to save a new environment path csv file
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self,
+                                                   "Save Path File", "./resources",
+                                                   "Path files (*.csv)", options=options)
+        if file_name:
+            self.environment.save_path(file_name)
+        
+    def load_path_dialog(self):
+        """
+            Open interaction dialog to open a new environment path csv file
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self,
+                                                   "Load Path File", "./resources",
+                                                   "Path files (*.csv)", options=options)
+        if file_name:
+            self.environment.load_path(file_name)
+
     def _build_ui(self):
         """
             Build the UI components
@@ -257,9 +281,12 @@ class Window(QMainWindow):
 
 
         self.new_action = QAction(self)
-        self.open_action = QAction("&Open...", self)
+        self.open_action = QAction("&Open Environment", self)
         self.open_action.triggered.connect(self.open_load_environment_dialog)
-        self.save_action = QAction("&Save", self)
+        self.loadpath_action = QAction("&Load Path", self)
+        self.loadpath_action.triggered.connect(self.load_path_dialog)
+        self.save_action = QAction("&Save Path", self)
+        self.save_action.triggered.connect(self.save_path_dialog)
         self.exit_action = QAction("&Exit", self)
 
         # rover actions
@@ -285,6 +312,7 @@ class Window(QMainWindow):
         menu_bar.addMenu(file_menu)
         file_menu.addAction(self.connect_action)
         file_menu.addAction(self.open_action)
+        file_menu.addAction(self.loadpath_action)
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
         # Creating menus using a title
