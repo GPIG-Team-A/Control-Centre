@@ -28,11 +28,16 @@ PUSH_SENSOR = PushSensor("E")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
-
+sounds = ["/sounds/scream.raw"]
 
 def play_sound(sound_file):
     hub.sound.play(sound_file)
     time.sleep(1)
+
+async def play_sound_index(handler, data):
+    if(len(sounds) > data.sound_code):
+        hub.sound.play(sounds[data.sound_code])
+        time.sleep(1)
 
 async def on_ping(handler, data):
     handler.send(Ping())
@@ -226,8 +231,28 @@ async def main():
     handler.add_listener(Ping, on_ping)
     handler.add_listener(Directions, on_new_directions)
     handler.add_listener(DistanceInstruction, on_get_distance)
+    handler.add_listener(PlaySound, play_sound_index)
     await handler.start()
 
+"""
+    stop log should be set to True when the program finishes running. 
+    ALT: continuous loop so multiple programs can be run and logs saved seperately with a different timestamp or over written each time ?
+"""
+stop_log = False
+
+async def log_motor():
+    """
+        Periodically log the motor speed/power
+        ALTERNATIVE: log rotation at set intervals and work from there
+    """
+    file = open("motor_log.txt")
+
+    while not stop_log:
+        file.writelines(str(WHEEL_PAIR.A.get_current_power()))
+        file.writelines(str(WHEEL_PAIR.B.get_current_power()))
+        time.sleep(0.25)
+    file.close()
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
