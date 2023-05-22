@@ -138,7 +138,7 @@ class RoverCommands:
             if command_type == RoverCommandType.MOVE:
                 rover.move(value)
             elif command_type == RoverCommandType.ROTATE:
-                rover.rotate(value)
+                rover.set_angle(value)
             elif command_type == RoverCommandType.RPMS:
                 motor1_speed, motor2_speed = value
                 rover.motor_move(motor1_speed, motor2_speed)
@@ -197,12 +197,14 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
             value = value * 100 # Convert to cm from m
             named_type = "MOVE"
         elif command_type == RoverCommandType.ROTATE:
-            value = -360 * value / (2 * np.pi)
+            value = 360 * (value + np.pi / 2) / (2 * np.pi)
             named_type = "ROTATE"
         elif command_type == RoverCommandType.MINE:
             value = 0
             named_type = "MINE"
         to_export.append({"type":named_type, "value":value})
+
+    print(to_export)
     return to_export
 
 
@@ -309,11 +311,19 @@ def create_rover_instructions_from_path(env: Environment,
 
         # If the angle is 0 then no change in direction is needed
         if d_angle != 0:
+            if new_angle > np.pi:
+                new_angle -= np.pi * 2
+
+            if new_angle < -np.pi:
+                new_angle += np.pi * 2
+
             # Adds the change direction command
-            cmds.append((RoverCommandType.ROTATE, -d_angle, 0.2))
+            cmds.append((RoverCommandType.ROTATE, new_angle, 0.2))
 
         # Gets the distance that the rover will traverse in meters
         distance = np.sqrt(dx * dx + dy * dy) * constants.METERS_PER_TILE
+
+        print(dx, dy, distance)
 
         # The time the rover will move at 'max_speed_rpm' to reach its next goal
         time = distance / constants.ROVER_MAX_SPEED
@@ -323,17 +333,12 @@ def create_rover_instructions_from_path(env: Environment,
 
         # Check for mining
         if (path_x, path_y) in end_pos:
-            # Get ang diff
-            diff = (-np.pi / 2) - new_angle
-            if diff >= np.pi:
-                diff -= np.pi * 2
-            elif diff <= -np.pi:
-                diff += np.pi * 2
+            angle = -np.pi / 2
             if end_pos.index((path_x, path_y)) == len(end_pos) - 1:
-                diff = (np.pi / 2) - diff
-            cmds.append((RoverCommandType.ROTATE, diff, 0.2))
+                angle = np.pi / 2
+            cmds.append((RoverCommandType.ROTATE, angle, 0.2))
             cmds.append((RoverCommandType.MINE, 0, 0.1))
-            cmds.append((RoverCommandType.ROTATE, -diff, 0.2))
+            cmds.append((RoverCommandType.ROTATE, new_angle, 0.2))
 
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)

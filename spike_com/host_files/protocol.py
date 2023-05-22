@@ -151,7 +151,7 @@ class RotateInstruction(Packet):
             motor_speed (int): speed of motor
         """
         super().__init__(self.CODE)
-        self.spin_roation = spin_rotation
+        self.spin_roation = int(spin_rotation)
         self.motor_speed = motor_speed
     
     def pack(self):
