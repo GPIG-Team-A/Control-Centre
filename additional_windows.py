@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget, QDialog, QDialogButtonBox, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget, QDialog, QDialogButtonBox, QLineEdit, QComboBox
 
 import sys
 
@@ -54,3 +54,6 @@ class ConfigurationDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+    def scan_for_rovers(self):
+        
+        pass
