@@ -105,20 +105,22 @@ class MoveInstruction(Packet):
     CODE = 1
 
     def __init__(self, left_motor_degrees=360, left_motor_speed=100,
-                right_motor_degrees=360, right_motor_speed=100):
+                right_motor_degrees=360, right_motor_speed=100, safe_move=True):
         super().__init__(self.CODE)
         self.left_motor_speed = int(left_motor_speed) * (-1 if left_motor_degrees < 0 else 1)
         self.left_motor_degrees = abs(int(left_motor_degrees))
         self.right_motor_speed = int(right_motor_speed) * (-1 if right_motor_degrees < 0 else 1)
         self.right_motor_degrees = abs(int(right_motor_degrees))
+        self.safe_move = safe_move
 
 
     def pack(self):
-        payload = struct.pack("!hhhh",
+        payload = struct.pack("!hhhhh",
             self.left_motor_degrees,
             self.left_motor_speed,
             self.right_motor_degrees,
-            self.right_motor_speed)
+            self.right_motor_speed,
+            1 if self.safe_move else 0)
         return self._encapsulate(payload)
 
     @staticmethod
@@ -128,12 +130,13 @@ class MoveInstruction(Packet):
         """
         payload = Packet.decapsulate(data)
         left_motor_degrees, left_motor_speed, right_motor_degrees,\
-              right_motor_speed = struct.unpack("!hhhh", payload)
+              right_motor_speed, safe_move = struct.unpack("!hhhhh", payload)
         return MoveInstruction(
             left_motor_degrees=left_motor_degrees,
             left_motor_speed=left_motor_speed,
             right_motor_degrees=right_motor_degrees,
-            right_motor_speed=right_motor_speed
+            right_motor_speed=right_motor_speed,
+            safe_move=True if safe_move == 1 else 0
         )
 
 class RotateInstruction(MoveInstruction):

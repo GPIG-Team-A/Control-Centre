@@ -45,7 +45,7 @@ async def on_get_distance(handler, data):
     except Exception as e:
         log.log("get_distance failed, " + str(e))
 
-def do_safe_move(instruction):
+def do_safe_move(instruction, safe_move=True):
     # Get the directional yaw
     directional_yaw = GYROSENSOR.get_yaw()
     # Get current motor rotations
@@ -90,7 +90,7 @@ def do_safe_move(instruction):
             play_sound("/sounds/scream.raw")
             return False
 
-        if CORRECTION_SYSTEM_ENABLED and abs(current_yaw - directional_yaw) > tolerance:
+        if CORRECTION_SYSTEM_ENABLED and safe_move and abs(current_yaw - directional_yaw) > tolerance:
             log.log("Incorrect yaw detected... correcting")
             WHEEL_PAIR.stop()
             hub.display.show("1")
@@ -202,7 +202,7 @@ async def on_new_directions(handler, directions):
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                do_safe_move(instruction)
+                do_safe_move(instruction, safe_move=instruction.safe_move)
             except Exception as e:
                 log.log(str(e))
             log.log("Finished move instruction")
