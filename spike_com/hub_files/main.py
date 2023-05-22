@@ -175,7 +175,7 @@ def mine(instruction):
     mining_time = 5
 
     # Drive forward until we get a touch on the pressure sensor
-    WHEEL_PAIR.start(a_speed=5, b_speed=5)
+    WHEEL_PAIR.start(a_speed=10, b_speed=10)
     
     elapsed = 0
     while not PUSH_SENSOR.is_pushed():
@@ -191,7 +191,7 @@ def mine(instruction):
     time.sleep(mining_time)
 
     # Now reverse back
-    WHEEL_PAIR.start(a_speed=-5, b_speed=-5)
+    WHEEL_PAIR.start(a_speed=-10, b_speed=-10)
     time.sleep(elapsed)
     WHEEL_PAIR.stop()
 
