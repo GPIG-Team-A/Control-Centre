@@ -19,8 +19,8 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     :return: The environment from the image
     """
 
-    width_tiles = int(ceil(width / METERS_PER_TILE))
-    height_tiles = int(ceil(height / METERS_PER_TILE))
+    width_tiles = int((width / METERS_PER_TILE))
+    height_tiles = int((height / METERS_PER_TILE))
 
     env = Environment(width_tiles + 2, height_tiles + 2)
 
