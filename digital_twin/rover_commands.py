@@ -28,6 +28,8 @@ class RoverCommandType(Enum):
     SET_POSITION = 3
     """ Command to set the position of the rover """
     SET_ANGLE = 4
+    """ Command to mine """
+    MINE = 5
     """ 
     Command to set the angle of the rover 
     MUST BE SET AS SINGLE ELEMENT TUPLE
@@ -38,7 +40,8 @@ ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE,
                                        RoverCommandType.ROTATE,
                                        RoverCommandType.RPMS,
                                        RoverCommandType.SET_POSITION,
-                                       RoverCommandType.SET_ANGLE]
+                                       RoverCommandType.SET_ANGLE,
+                                       RoverCommandType.MINE]
 
 
 class RoverCommands:
@@ -196,6 +199,9 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
         elif command_type == RoverCommandType.ROTATE:
             value = -360 * value / (2 * np.pi)
             named_type = "ROTATE"
+        elif command_type == RoverCommandType.MINE:
+            value = 0
+            named_type = "MINE"
         to_export.append({"type":named_type, "value":value})
     return to_export
 
@@ -263,7 +269,8 @@ def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str
     return cmds
 
 
-def create_rover_instructions_from_path(path: list[tuple[int]],
+def create_rover_instructions_from_path(env: Environment,
+                                        path: list[tuple[int]],
                                         rover_direction: float = 0,
                                         rover_final_direction: float = 0)\
         -> list[tuple[float]]:
@@ -279,6 +286,9 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
     cur_pos = path[0]
 
     cmds: list[tuple[float]] = []
+
+    end_pos = env.get_start_end()[1]
+
 
     for path_x, path_y in path[1:]:
         # Gets the direction to the next node
@@ -310,6 +320,20 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
 
         # Adds the move forward command
         cmds.append((RoverCommandType.MOVE, distance, time))
+
+        # Check for mining
+        if (path_x, path_y) in end_pos:
+            # Get ang diff
+            diff = (-np.pi / 2) - new_angle
+            if diff >= np.pi:
+                diff -= np.pi * 2
+            elif diff <= -np.pi:
+                diff += np.pi * 2
+            if end_pos.index((path_x, path_y)) == len(end_pos) - 1:
+                diff = (np.pi / 2) - diff
+            cmds.append((RoverCommandType.ROTATE, diff, 0.2))
+            cmds.append((RoverCommandType.MINE, 0, 0.1))
+            cmds.append((RoverCommandType.ROTATE, -diff, 0.2))
 
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)
