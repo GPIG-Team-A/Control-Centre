@@ -10,11 +10,11 @@ import ctypes
 from typing import IO, Any
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QPoint
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QBrush, QColor
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -96,6 +96,9 @@ class Grid(QWidget):
             (12, 22),
         ]
 
+        self.rover_points = []
+        self.is_log_mode = False
+
     def paintEvent(self, _):  # pylint: disable=C0103
         """
             Paint the Grid
@@ -136,9 +139,19 @@ class Grid(QWidget):
                 # painter.drawLine(pos_x, pos_y, pos_x, pos_y + self.square_size)
                 if tile_type == EnvType.OBSTACLE:
                     painter.setBrush(Qt.red)
+                    painter.setPen(Qt.red)
                     painter.drawRect(object_rect.translated(pos_x, pos_y))
 
+        painter.setBrush(Qt.yellow)
+        painter.setPen(Qt.yellow)
+
+        rover_point_rect = QRectF(0, 0, 2, 2)
+        for rover_point_x, rover_point_y in self.rover_points:
+            painter.drawEllipse(rover_point_rect.translated(rover_point_x - 1,
+                                                            rover_point_y - 1))
+
         painter.setBrush(Qt.green)
+        painter.setPen(Qt.green)
         _, goal_pos = self.environment.get_start_end()
 
         for goal_pos_x, goal_pos_y in goal_pos:
@@ -147,6 +160,8 @@ class Grid(QWidget):
             painter.drawRect(object_rect.translated(goal_pos_x, goal_pos_y))
 
         path = self.environment.get_path(should_generate=False)
+
+        painter.setPen(Qt.black)
 
         if path is not None:
             for i in range(len(path) - 1):
@@ -174,6 +189,11 @@ class Grid(QWidget):
                           + TILE_START_X - rover_dims / 2
             rover_map_y = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_y \
                           + TILE_START_Y - rover_dims / 2
+
+            rover_point = (rover_map_x + rover_dims / 2, rover_map_y + rover_dims / 2)
+
+            if rover_point not in self.rover_points and self.is_log_mode:
+                self.rover_points.append(rover_point)
 
             rover_rect = QRectF(rover_map_x, rover_map_y, rover_dims, rover_dims)
 
@@ -460,12 +480,16 @@ class Window(QMainWindow):
 
                 rover_command = self.cmd_thread.get_rover_command()
 
+                self.grid.rover_points = []
+                self.grid.is_log_mode = True
                 for command_type, value, time in cmds:
                     rover_command.add_command(command_type, value, time)
 
                 while not rover_command.is_empty():
                     QCoreApplication.processEvents()
                     self.grid.repaint()
+
+                self.grid.is_log_mode = False
 
                 log_file.close()
 
