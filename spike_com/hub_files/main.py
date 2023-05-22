@@ -27,7 +27,7 @@ DISTANCE_SENSOR = Ultrasonic("D")
 PUSH_SENSOR = PushSensor("E")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
-CORRECTION_SYSTEM_ENABLED = True
+CORRECTION_SYSTEM_ENABLED = False
 
 
 def play_sound(sound_file):
@@ -74,7 +74,7 @@ def do_safe_move(instruction, safe_move=True):
         recorded_rotations.append((LEFT_WHEEL.get_rotation(), RIGHT_WHEEL.get_rotation()))
 
         # Check interrupts
-        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE:
+        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE and False:
             log.log("INTERRUPT: Registered white on bottom sensor... stopping")
             WHEEL_PAIR.stop()
             play_sound("/sounds/scream.raw")
@@ -99,8 +99,11 @@ def do_safe_move(instruction, safe_move=True):
             sign = lambda x: (-1, 1)[x<0]
             while abs(current_yaw - directional_yaw) > 0:
                 # Reorient to the North normal
-                sign_yaw, norm_yaw = sign(current_yaw), 180 - abs(current_yaw)
-                normal_yaw = norm_yaw * sign_yaw
+                if current_yaw >= 90 or current_yaw <= -90:
+                    sign_yaw, norm_yaw = sign(current_yaw), 180 - abs(current_yaw)
+                    normal_yaw = norm_yaw * sign_yaw * -1
+                else:
+                    normal_yaw = current_yaw
 
                 dir = sign(normal_yaw - directional_yaw)
                 # dir=1 means we turn right, dir=-1 means we turn left

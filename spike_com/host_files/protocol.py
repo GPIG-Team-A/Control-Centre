@@ -136,7 +136,7 @@ class MoveInstruction(Packet):
             left_motor_speed=left_motor_speed,
             right_motor_degrees=right_motor_degrees,
             right_motor_speed=right_motor_speed,
-            safe_move=True if safe_move == 1 else 0
+            safe_move=True if safe_move == 1 else False
         )
 
 class RotateInstruction(MoveInstruction):
@@ -157,7 +157,8 @@ class RotateInstruction(MoveInstruction):
             left_motor_degrees=spin_rotation * R,
             left_motor_speed=motor_speed,
             right_motor_degrees=spin_rotation * R,
-            right_motor_speed=-motor_speed
+            right_motor_speed=-motor_speed,
+            safe_move=False
         )
 
 class MiningInstruction(Packet):

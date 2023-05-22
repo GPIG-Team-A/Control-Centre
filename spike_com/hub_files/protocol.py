@@ -136,7 +136,7 @@ class MoveInstruction(Packet):
             left_motor_speed=left_motor_speed,
             right_motor_degrees=right_motor_degrees,
             right_motor_speed=right_motor_speed,
-            safe_move=True if safe_move == 1 else 0
+            safe_move=True if safe_move == 1 else False
         )
 
 class RotateInstruction(MoveInstruction):

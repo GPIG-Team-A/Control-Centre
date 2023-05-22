@@ -6,7 +6,7 @@ import clrprint
 from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction
 
 static = {"WHEEL_RADIUS": 4.3, "R": 11/8.7}#6.25/4.3}
-var = {"speed": 10}
+var = {"speed": 50}
 
 def move(distance):
     """
