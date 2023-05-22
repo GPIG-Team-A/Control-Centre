@@ -3,7 +3,6 @@ Loads an environment from a file
 """
 
 from PIL import Image
-from numpy import ceil
 from digital_twin.environment import Environment, EnvType, get_environment_type_from_value
 from digital_twin.constants import METERS_PER_TILE
 

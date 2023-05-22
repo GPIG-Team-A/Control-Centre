@@ -565,7 +565,8 @@ class Window(QMainWindow):
 
         self.grid.repaint()
 
-        rover_commands = create_rover_instructions_from_path(self.environment, path, start_angle, end_angle)
+        rover_commands = create_rover_instructions_from_path(self.environment,
+            path, start_angle, end_angle)
 
         for cmd_type, value, time in rover_commands:
             rover_command.add_command(cmd_type, value, time)
