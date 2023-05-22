@@ -323,6 +323,13 @@ def create_rover_instructions_from_path(env: Environment,
 
         # Check for mining
         if (path_x, path_y) in end_pos:
+            # Get ang diff
+            diff = (-np.pi / 2) - new_angle
+            if diff >= np.pi:
+                diff -= np.pi * 2
+            elif diff <= -np.pi:
+                diff += np.pi * 2
+            cmds.append((RoverCommandType.ROTATE, diff, 0.2))
             cmds.append((RoverCommandType.MINE, 0, 0.1))
 
         # Updates the rovers position and angle
