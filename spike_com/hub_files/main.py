@@ -177,6 +177,32 @@ def do_safe_move(instruction):
         log.log(e)
     return True
 
+def rotate(instruction):
+    """
+        Rotate
+    """
+    new_yaw = instruction.spin_roation
+    current_yaw = GYROSENSOR.get_yaw()
+
+    #new_yaw = (current_yaw + amount)
+    #if new_yaw > 180:
+     #   new_yaw -= 360
+    log.log(str(current_yaw) + ":" + str(new_yaw))
+    # Now move until we get the yaw
+    sign = lambda x: (-1, 1)[x<0]
+    while abs(current_yaw - new_yaw) > 1:
+        # Which way are we incorrect?
+        dir = (((current_yaw % 360) - (new_yaw % 360)) % 360) >= 180
+        # dir=1 means we turn left, dir=-1 means we turn right
+        if not dir:
+            WHEEL_PAIR.start(3, -3)
+        else:
+            WHEEL_PAIR.start(-3, 3)
+        time.sleep(0.1)
+        current_yaw = GYROSENSOR.get_yaw()
+    WHEEL_PAIR.stop()
+
+
 def mine(instruction):
     """
         Perform a mining command
@@ -228,6 +254,13 @@ async def on_new_directions(handler, directions):
             except Exception as e:
                 log.log(str(e))
             log.log("Finished MiningInstruction")
+        elif isinstance(instruction, RotateInstruction):
+            log.log("RotateInstruction")
+            try:
+                rotate(instruction)
+            except Exception as e:
+                log.log(str(e))
+            log.log("Finished RotateInstruction")
         time.sleep(1)
 
 async def main():

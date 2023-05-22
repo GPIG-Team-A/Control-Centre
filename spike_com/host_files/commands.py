@@ -32,7 +32,7 @@ def rotate(deg_clockwise):
         deg_clockwise = deg_clockwise[0]
 
     return RotateInstruction(
-        deg_clockwise, 10, static["R"]
+        deg_clockwise, 5
     )
 
 def mine():
