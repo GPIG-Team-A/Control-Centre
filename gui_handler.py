@@ -10,11 +10,11 @@ import ctypes
 from typing import IO, Any
 
 import numpy
-from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent, QPoint
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
-from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator, QBrush, QColor
+from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -204,6 +204,17 @@ class Grid(QWidget):
 
 
 def parse_log_file(log_file: IO) -> list[dict[str, Any]]:
+    """
+    Parses a log file's contents
+
+    Parameters
+    ----------
+    log_file
+
+    Returns
+    -------
+
+    """
     data_list = []
 
     while (line := log_file.readline()) != "":
@@ -420,7 +431,7 @@ class Window(QMainWindow):
             upload_log_file(log)
 
             with open(f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-                      f" LOG.txt", mode='w') as log_file:
+                      f" LOG.txt", mode='w', encoding="UTF-8") as log_file:
                 log_file.write(log)
                 log_file.close()
 
@@ -463,6 +474,7 @@ class Window(QMainWindow):
         self.add_grid(self.environment)
 
     def load_real_motors(self):
+        """ Loads the physical rover's motor logs"""
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         file_name, _ = QFileDialog.getOpenFileName(self,
@@ -470,7 +482,7 @@ class Window(QMainWindow):
                                                    "Log files (*.txt)", options=options)
 
         if file_name:
-            with open(file_name, mode='r') as log_file:
+            with open(file_name, mode='r', encoding="UTF-8") as log_file:
                 log_data = parse_log_file(log_file)
                 cmds = create_rover_instructions_from_logs(self.environment, log_data)
 

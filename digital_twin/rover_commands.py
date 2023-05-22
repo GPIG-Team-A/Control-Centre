@@ -127,7 +127,7 @@ class RoverCommands:
             command_type, value, time_units_left = self._current_command
             command_type = ROVER_TYPES[int(command_type)]
 
-            if type(value) == float:
+            if isinstance(value, float):
                 if np.isnan(value):
                     self._current_command = None
                     return
@@ -201,6 +201,18 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
 
 
 def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str, Any]]):
+    """
+    Creates the rover's instructions from the logs provided
+
+    Parameters
+    ----------
+    env
+    log_obj
+
+    Returns
+    -------
+
+    """
     cmds = []
 
     start_pos = env.get_start_end()[0]
