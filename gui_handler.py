@@ -10,7 +10,7 @@ import numpy
 from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
-    QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
+    QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox, QCheckBox
 from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
 
 from digital_twin.rover import Rover
@@ -22,6 +22,7 @@ from digital_twin.rover_commands import create_rover_instructions_from_path, \
     rover_instructions_to_json
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
+from spike_com.host_files.protocol import VariableChangeInstruction
 from discord_integration.discord import upload_log_file
 import additional_windows
 
@@ -39,7 +40,7 @@ TILE_START_X = 10
 TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
-<<<<<<< HEAD
+WIN_TITLE="GROMIT"
 ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 1.75, 1.5
 
 
@@ -246,6 +247,13 @@ class Window(QMainWindow):
         dlg = additional_windows.ConfigurationDialog()
         dlg.exec()
 
+    def change_interrupt(self, value):
+        if self.spike_handler.communication_handler is not None:
+            if value:
+                self.spike_handler.communication_handler.send_packet(VariableChangeInstruction(0, True))
+            else:
+                self.spike_handler.send_packet(VariableChangeInstruction(0, False))
+
     def _build_ui(self):
         """
             Build the UI components
@@ -275,8 +283,12 @@ class Window(QMainWindow):
         help_tool_bar = QToolBar("Help", self)
         self.addToolBar(Qt.LeftToolBarArea, help_tool_bar)
 
-        self.rover_status_label = QLabel("Rover Status: Offline")
+        self.rover_status_label = QLabel("Rover Status: Offline  ")
         edit_tool_bar.addWidget(self.rover_status_label)
+        self.interrupt_status = QCheckBox("Interrupts")
+        self.interrupt_status.setChecked(True)
+        self.interrupt_status.stateChanged.connect(lambda:self.change_interrupt(self.interrupt_status.isChecked()))
+        edit_tool_bar.addWidget(self.interrupt_status)
 
         # Create Menu Bars
         menu_bar = self.menuBar()

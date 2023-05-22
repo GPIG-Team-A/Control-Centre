@@ -227,6 +227,67 @@ class SyncInstruction(Packet):
         """
         return SyncInstruction()
 
+class VariableRequestInstruction(Packet):
+    """
+        A Variable Request from the Spike
+    """
+
+    CODE = 96
+
+    def __init__(self, variable_code):
+        super().__init__(self.CODE)
+        self.var_code = variable_code
+
+    def pack(self):
+        payload = struct.pack("!H",
+                              self.var_code)
+        return self._encapsulate(payload)
+    
+
+    @staticmethod
+    def unpack(data):
+        """
+            Unpack the VariableRequestInstruction Packet
+        """
+        print(data)
+        payload = Packet.decapsulate(data)
+        print(len(payload))
+        print(payload)
+        var_code = struct.unpack("!H", payload)
+        return VariableRequestInstruction(var_code)
+
+
+class VariableChangeInstruction(Packet):
+    """
+        A Variable Request from the Spike
+    """
+
+    CODE = 97
+
+    def __init__(self, variable_code, new_value):
+        super().__init__(self.CODE)
+        self.var_code = variable_code
+        self.value - new_value
+
+    def pack(self):
+        payload = struct.pack("!Hi",
+                              self.var_code, self.value)
+        return self._encapsulate(payload)
+    
+
+    @staticmethod
+    def unpack(data):
+        """
+            Unpack the VariableRequestInstruction Packet
+        """
+        print(data)
+        payload = Packet.decapsulate(data)
+        print(len(payload))
+        print(payload)
+        var_code, var_value = struct.unpack("!Hi", payload)
+        return VariableRequestInstruction(var_code, var_value)
+
+
 class Directions(Packet):
     """
         Represents a Direction list to the Spike
@@ -304,6 +365,8 @@ CODES = {
     2: DistanceInstruction,
     3: DistanceSend,
     4: MiningInstruction,
+    96: VariableRequestInstruction,
+    97: VariableChangeInstruction,
     99: PlaySound,
     100: Directions,
 }

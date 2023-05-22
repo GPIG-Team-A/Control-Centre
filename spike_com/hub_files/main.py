@@ -29,6 +29,7 @@ GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
 CORRECTION_SYSTEM_ENABLED = False
 sounds = ["/sounds/scream.raw"]
+interrupts = True
 
 def play_sound(sound_file):
     hub.sound.play(sound_file)
@@ -38,6 +39,18 @@ async def play_sound_index(handler, data):
     if(len(sounds) > data.sound_code):
         hub.sound.play(sounds[data.sound_code])
         time.sleep(1)
+
+
+async def change_value(handler, data):
+    if data.var_code== 0:
+        interrupts = data.value
+        log.log("change value of Interrupt "  + data.value)
+    # try:
+    #     handler.send(VariableChangeInstruction(data.var_code, interrupts))
+    # except Exception as e:
+    #     log.log("Failed to send confirmation value " + str(e))
+
+
 
 async def on_ping(handler, data):
     handler.send(Ping())
@@ -79,21 +92,22 @@ def do_safe_move(instruction):
         recorded_rotations.append((LEFT_WHEEL.get_rotation(), RIGHT_WHEEL.get_rotation()))
 
         # Check interrupts
-        if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE:
-            log.log("INTERRUPT: Registered white on bottom sensor... stopping")
-            WHEEL_PAIR.stop()
-            play_sound("/sounds/scream.raw")
-            return False
-        if LIGHT_SENSOR_BOTTOM.get_reflecton() <= 2:
-            log.log("INTERRUPT: Registered no reflection... stopping")
-            WHEEL_PAIR.stop()
-            play_sound("/sounds/scream.raw")
-            return False
-        if DISTANCE_SENSOR.get_distance() <= 10:
-            log.log("INTERRUPT: Registered object 5cm infront... stopping")
-            WHEEL_PAIR.stop()
-            play_sound("/sounds/scream.raw")
-            return False
+        if interrupts:
+            if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE:
+                log.log("INTERRUPT: Registered white on bottom sensor... stopping")
+                WHEEL_PAIR.stop()
+                play_sound("/sounds/scream.raw")
+                return False
+            if LIGHT_SENSOR_BOTTOM.get_reflecton() <= 2:
+                log.log("INTERRUPT: Registered no reflection... stopping")
+                WHEEL_PAIR.stop()
+                play_sound("/sounds/scream.raw")
+                return False
+            if DISTANCE_SENSOR.get_distance() <= 10:
+                log.log("INTERRUPT: Registered object 5cm infront... stopping")
+                WHEEL_PAIR.stop()
+                play_sound("/sounds/scream.raw")
+                return False
 
         if CORRECTION_SYSTEM_ENABLED and abs(current_yaw - directional_yaw) > tolerance:
             log.log("Incorrect yaw detected... correcting")
@@ -232,6 +246,7 @@ async def main():
     handler.add_listener(Directions, on_new_directions)
     handler.add_listener(DistanceInstruction, on_get_distance)
     handler.add_listener(PlaySound, play_sound_index)
+    handler.add_listener(VariableChangeInstruction, change_value)
     await handler.start()
 
 """

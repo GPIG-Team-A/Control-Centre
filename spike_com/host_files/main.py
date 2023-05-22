@@ -93,6 +93,9 @@ class Handler:
                             invalid number of values needed",
                             clr='red')
         self.communication_handler.send(directions)
+    
+    def send_packet(self, packet):
+        self.communication_handler.send(packet)
 
     def start(self):
         """
