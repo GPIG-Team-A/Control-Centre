@@ -213,12 +213,20 @@ def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str
     cmds.append((RoverCommandType.SET_POSITION, start_pos, 0.1))
     cmds.append((RoverCommandType.SET_ANGLE, (last_end_rotation,), 0.1))
 
+    angle_adj = None
+
     for log_dict in log_obj:
         if len(log_dict) == 0:
             continue
 
         start_rotation = log_dict["Starting Yaw"] * np.pi / 180
         end_rotation = log_dict["Ending Yaw"] * np.pi / 180
+
+        if angle_adj is None:
+            angle_adj = last_end_rotation - start_rotation
+
+        start_rotation += angle_adj
+        end_rotation += angle_adj
 
         rotation_angle = start_rotation - last_end_rotation
 
