@@ -160,6 +160,7 @@ class RotateInstruction(Packet):
 
     @staticmethod
     def unpack(data):
+        """ Unpack RotateInstruction from raw data """
         payload = Packet.decapsulate(data)
         spin_rotation, motor_speed = struct.unpack("!hh", payload)
         return RotateInstruction(spin_rotation, motor_speed)
