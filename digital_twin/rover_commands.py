@@ -236,7 +236,7 @@ def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str
 
         for motor1_power, motor2_power in motor_powers:
             motor1_power = motor1_power / 100 * constants.POWER_TO_SPEED_CONVERSION
-            motor2_power = motor2_power / 100 * constants.POWER_TO_SPEED_CONVERSION
+            motor2_power = -motor2_power / 100 * constants.POWER_TO_SPEED_CONVERSION
 
             cmds.append((RoverCommandType.RPMS, (motor1_power, motor2_power), 0.1))
 
