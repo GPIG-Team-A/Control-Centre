@@ -58,6 +58,7 @@ def do_safe_move(instruction):
     WHEEL_PAIR.run_for_degrees(
         instruction.left_motor_degrees,
         speed=(instruction.left_motor_speed, instruction.right_motor_speed)
+        #acceleration=2000
     )
 
     time.sleep(0.1) # Allow time for the motors to start
@@ -66,12 +67,17 @@ def do_safe_move(instruction):
     recorded_yaws = []
     recorded_power = []
     recorded_rotations = []
+    times = []
     tolerance = 2 # Amount of tolerance
+    last_time = time.ticks_ms()
     while LEFT_WHEEL.is_running() or RIGHT_WHEEL.is_running():
         current_yaw = GYROSENSOR.get_yaw()
         recorded_yaws.append(current_yaw)
         recorded_power.append((LEFT_WHEEL.get_current_power(), RIGHT_WHEEL.get_current_power()))
         recorded_rotations.append((LEFT_WHEEL.get_rotation(), RIGHT_WHEEL.get_rotation()))
+        cur_time = time.ticks_ms()
+        times.append(time.ticks_diff(last_time, cur_time))
+        last_time = cur_time
 
         # Check interrupts
         if LIGHT_SENSOR_BOTTOM.get_colour() == Colour.WHITE and False:
@@ -136,36 +142,39 @@ def do_safe_move(instruction):
             time.sleep(0.1)
         time.sleep(0.1)
 
-    yaw_differences = [abs(x - directional_yaw) for x in recorded_yaws]
-    if len(yaw_differences) > 0:
-        average_difference = sum(yaw_differences) / len(yaw_differences)
-    else:
-        average_difference = 0
+    try:
+        yaw_differences = [abs(x - directional_yaw) for x in recorded_yaws]
+        if len(yaw_differences) > 0:
+            average_difference = sum(yaw_differences) / len(yaw_differences)
+        else:
+            average_difference = 0
 
-    # Calculating RPMs from rotations
-    calculated_rotation_offsets = []
-    calculated_rotation_offsets.append((recorded_rotations[0][0] - left_wheel_starting_rotation, recorded_rotations[0][1] - right_wheel_starting_rotation))
-    for i in range(1, len(recorded_rotations) - 1):
-        calculated_rotation_offsets.append(
-            (abs(recorded_rotations[i][0] - recorded_rotations[i-1][0]), 
-            abs(recorded_rotations[i][1] - recorded_rotations[i-1][1]))
-        )
-    # Time between rotation changes is 0.1, we can calculate REAL RPM from this
-    calculated_rpm = []
-    for offsets in calculated_rotation_offsets:
-        calculated_rpm.append(
-            ((offsets[0] / 360) * 600, (offsets[1] / 360) * 600))
+        # Calculating RPMs from rotations
+        calculated_rotation_offsets = []
+        calculated_rotation_offsets.append((recorded_rotations[0][0] - left_wheel_starting_rotation, recorded_rotations[0][1] - right_wheel_starting_rotation))
+        for i in range(1, len(recorded_rotations) - 1):
+            calculated_rotation_offsets.append(
+                (abs(recorded_rotations[i][0] - recorded_rotations[i-1][0]), 
+                abs(recorded_rotations[i][1] - recorded_rotations[i-1][1]))
+            )
+        # Time between rotation changes is 0.1, we can calculate REAL RPM from this
+        calculated_rpm = []
+        for offsets in calculated_rotation_offsets:
+            calculated_rpm.append(
+                ((offsets[0] / 360) * 600, (offsets[1] / 360) * 600))
 
-    log.log("#######SAFE MOVE DIGEST########")
-    log.log("Starting Yaw: " + str(directional_yaw))
-    log.log("Ending Yaw: " + str(recorded_yaws[-1]))
-    log.log("Recorded Yaws: " + str(recorded_yaws))
-    log.log("Yaw Differences: " + str(yaw_differences))
-    log.log("Average Difference: " + str(average_difference))
-    log.log("Power Values: " + str(recorded_power))
-    log.log("RPM Values:" + str(calculated_rpm))
-    log.log("Move Time:" + str(len(recorded_power) / 10))
-    log.log("#######SAFE MOVE DIGEST########")
+        log.log("#######SAFE MOVE DIGEST########")
+        log.log("Starting Yaw: " + str(directional_yaw))
+        log.log("Ending Yaw: " + str(recorded_yaws[-1]))
+        log.log("Recorded Yaws: " + str(recorded_yaws))
+        log.log("Yaw Differences: " + str(yaw_differences))
+        log.log("Average Difference: " + str(average_difference))
+        log.log("Power Values: " + str(recorded_power))
+        log.log("RPM Values:" + str(calculated_rpm))
+        log.log("Times:" + str(times))
+        log.log("#######SAFE MOVE DIGEST########")
+    except Exception as e:
+        log.log(e)
     return True
 
 def mine(instruction):
@@ -205,6 +214,8 @@ async def on_new_directions(handler, directions):
                 do_safe_move(instruction)
             except Exception as e:
                 log.log(str(e))
+                hub.sound.beep(5000)
+                break
             log.log("Finished move instruction")
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")

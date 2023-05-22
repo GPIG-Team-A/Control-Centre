@@ -428,12 +428,12 @@ class Window(QMainWindow):
         """
         log = self.spike_handler.get_log()
         if log:
-            upload_log_file(log)
-
-            with open(f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-                      f" LOG.txt", mode='w', encoding="UTF-8") as log_file:
+            
+            log_name = f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+            with open(log_name, mode='w', encoding="UTF-8") as log_file:
                 log_file.write(log)
-                log_file.close()
+
+            upload_log_file(log)
 
     def open_load_environment_dialog(self):
         """
@@ -571,6 +571,7 @@ class Window(QMainWindow):
             rover_command.add_command(cmd_type, value, time)
 
         formatted_instructs = rover_instructions_to_json(rover_commands)
+        print(formatted_instructs)
 
         if self.spike_handler.communication_handler is not None:
             print("Sending instructions...")

@@ -329,8 +329,11 @@ def create_rover_instructions_from_path(env: Environment,
                 diff -= np.pi * 2
             elif diff <= -np.pi:
                 diff += np.pi * 2
+            if end_pos.index((path_x, path_y)) == len(end_pos) - 1:
+                diff = (np.pi / 2) - diff
             cmds.append((RoverCommandType.ROTATE, diff, 0.2))
             cmds.append((RoverCommandType.MINE, 0, 0.1))
+            cmds.append((RoverCommandType.ROTATE, -diff, 0.2))
 
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)

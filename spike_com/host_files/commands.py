@@ -5,8 +5,8 @@ import math
 import clrprint
 from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction
 
-static = {"WHEEL_RADIUS": 4.3, "R": 11/8.7}#6.25/4.3}
-var = {"speed": 35}
+static = {"WHEEL_RADIUS": 4.3, "R": 1.3}#6.25/4.3}
+var = {"speed": 30}
 
 def move(distance):
     """
@@ -32,7 +32,7 @@ def rotate(deg_clockwise):
         deg_clockwise = deg_clockwise[0]
 
     return RotateInstruction(
-        deg_clockwise, 20, static["R"]
+        deg_clockwise, 10, static["R"]
     )
 
 def mine():
