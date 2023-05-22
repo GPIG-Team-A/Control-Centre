@@ -39,7 +39,7 @@ def mine():
     """
         Mine command
     """
-    return MiningInstruction(time=var["mining_time"])
+    return MiningInstruction(time=0)
 
 def set_variable(args):
     """

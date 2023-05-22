@@ -26,8 +26,8 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
 
     img = Image.open(image_filename, 'r')
 
-    width_pixels_per_tile = int(ceil(img.size[0] / (width_tiles - 2)))
-    height_pixels_per_tile = int(ceil(img.size[1] / (height_tiles - 2)))
+    width_pixels_per_tile = int((img.size[0] / (width_tiles - 2)))
+    height_pixels_per_tile = int((img.size[1] / (height_tiles - 2)))
 
     start = None
     end = []

@@ -172,7 +172,7 @@ def mine(instruction):
     """
         Perform a mining command
     """
-    mining_time = instruction.time
+    mining_time = 5
 
     # Drive forward until we get a touch on the pressure sensor
     WHEEL_PAIR.start(a_speed=5, b_speed=5)
