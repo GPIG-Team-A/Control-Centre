@@ -27,7 +27,7 @@ DISTANCE_SENSOR = Ultrasonic("D")
 PUSH_SENSOR = PushSensor("E")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
-CORRECTION_SYSTEM_ENABLED = False
+CORRECTION_SYSTEM_ENABLED = True
 
 
 def play_sound(sound_file):
@@ -98,9 +98,12 @@ def do_safe_move(instruction, safe_move=True):
             # Perform rotation until we get to correct yaw
             sign = lambda x: (-1, 1)[x<0]
             while abs(current_yaw - directional_yaw) > 0:
-                # Which way are we incorrect?
-                dir = sign(current_yaw - directional_yaw)
-                # dir=1 means we turn left, dir=-1 means we turn right
+                # Reorient to the North normal
+                sign_yaw, norm_yaw = sign(current_yaw), 180 - abs(current_yaw)
+                normal_yaw = norm_yaw * sign_yaw
+
+                dir = sign(normal_yaw - directional_yaw)
+                # dir=1 means we turn right, dir=-1 means we turn left
                 if dir == 1:
                     WHEEL_PAIR.start(1, 0)
                 else:
@@ -109,7 +112,7 @@ def do_safe_move(instruction, safe_move=True):
                 current_yaw = GYROSENSOR.get_yaw()
             WHEEL_PAIR.stop()
             hub.display.show("2")
-            time.sleep(3)
+            time.sleep(2)
 
 
             # Begin instruction again
@@ -127,12 +130,10 @@ def do_safe_move(instruction, safe_move=True):
                 right_motor_speed=20
             )
 
-            for i in range(20):
-                WHEEL_PAIR.run_for_degrees(
-                    new_instruction.left_motor_degrees,
-                    speed=i
-                )
-                time.sleep(0.1)
+            WHEEL_PAIR.run_for_degrees(
+                new_instruction.left_motor_degrees,
+                speed=i
+            )
             time.sleep(0.1)
         time.sleep(0.1)
 
