@@ -186,16 +186,17 @@ class Grid(QWidget):
                          / constants.METERS_PER_TILE
 
             rover_map_x = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_x \
-                          + TILE_START_X - rover_dims / 2
+                          + TILE_START_X - rover_dims
             rover_map_y = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_y \
-                          + TILE_START_Y - rover_dims / 2
+                          + TILE_START_Y + rover_dims / 2
 
-            rover_point = (rover_map_x + rover_dims / 2, rover_map_y + rover_dims / 2)
+            rover_point = (rover_map_x, rover_map_y)
 
             if rover_point not in self.rover_points and self.is_log_mode:
                 self.rover_points.append(rover_point)
 
-            rover_rect = QRectF(rover_map_x, rover_map_y, rover_dims, rover_dims)
+            rover_rect = QRectF(rover_map_x - rover_dims / 2, rover_map_y - rover_dims / 2
+                                , rover_dims, rover_dims)
 
             painter.drawImage(rover_rect, get_rover_image(painter,
                                                           QImage("resources/Rover.png"), rover))

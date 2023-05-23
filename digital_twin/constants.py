@@ -20,5 +20,5 @@ ROVER_MAX_SPEED: float = 1
 ROVER_STANDARD_DEVIATION: float = 0.8806615716635956 / 50.01724137931034
 """ The normalised standard deviation of the real rover's individual motors """
 
-POWER_TO_SPEED_CONVERSION: float = 0.565
+POWER_TO_SPEED_CONVERSION: float = 0.225
 """ Converts the motor power to m/s """
