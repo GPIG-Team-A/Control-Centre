@@ -58,10 +58,10 @@ class RoverCommandThread(Thread):
             # Updates the rover's commands
             self._rover_commands.update(self._rover, self._is_viewing_mode)
             if self._is_viewing_mode:
-                cur_time = time.time_ns()
+                cur_time = time.time()
 
-                while (time.time_ns() - cur_time) < TIME_BETWEEN_MOVEMENTS * 1e9:
-                    pass
+                while (time.time() - cur_time) < TIME_BETWEEN_MOVEMENTS:
+                    time.sleep(0)
             else:
                 time.sleep(0)
 
