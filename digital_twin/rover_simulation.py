@@ -117,7 +117,7 @@ def simulate(env: Environment, trial_number: int, prob_failure: float,
     if critical_value == -1:
         raise ValueError("INVALID CRITICAL VALUE")
 
-    cur_width_val = DISTANCE_BETWEEN_MOTORS
+    cur_width_val = DISTANCE_BETWEEN_MOTORS * 2
 
     env_start_x, env_start_y = env.get_start_end()[0]
 
@@ -135,7 +135,7 @@ def simulate(env: Environment, trial_number: int, prob_failure: float,
             print("FAILED")
             break
 
-        rover_cmds = create_rover_instructions_from_path(path, direction)
+        rover_cmds = create_rover_instructions_from_path(env, path, direction)
 
         failed_trials = 0
 

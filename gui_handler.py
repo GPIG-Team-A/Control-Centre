@@ -79,7 +79,7 @@ class Grid(QWidget):
         pallet.setColor(self.backgroundRole(), Qt.gray)
         self.setPalette(pallet)
 
-        self.setFixedSize(800, 800)
+        self.setMinimumSize(800, 800)
         self.columns = 400
         self.rows = 300
         self.environment = environment

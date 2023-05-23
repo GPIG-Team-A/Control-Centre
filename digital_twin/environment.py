@@ -261,7 +261,10 @@ class Environment:
 
     def save_path(self, filename):
         """ Save path to file """
-        file = open(filename,'w')
+        if ".csv" not in filename:
+            filename = filename + ".csv"
+
+        file = open(filename, 'w')
         csv_out = csv.writer(file)
         p = self.get_path()
         print(p)
@@ -272,10 +275,11 @@ class Environment:
     def load_path(self, filename):
         """ Load path from file """
         with open(filename, 'r') as file:
-            self.reset_path()
+            self._path = []
             csv_in = csv.reader(file)
             for row in csv_in:
-                self._path.append(row)
+                if row:
+                    self._path.append((float(row[0]), float(row[1])))
 
 
 
