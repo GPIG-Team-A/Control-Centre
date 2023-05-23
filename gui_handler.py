@@ -19,14 +19,14 @@ from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidat
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
 from digital_twin import constants
-from digital_twin.environment import EnvType
+from digital_twin.environment import EnvType, Environment
 from digital_twin.threadproc import RoverCommandThread
 from digital_twin.rover_commands import create_rover_instructions_from_path, \
     rover_instructions_to_json, create_rover_instructions_from_logs
 from digital_twin.environment_interface import image_to_environment
 from spike_com.spike import SpikeHandler
 from discord_integration.discord import upload_log_file
-
+import additional_windows
 
 if os.name == "nt":
     MY_APP_ID = 'gooogle.wallacerover.controlcentre.1.0.0'
@@ -43,7 +43,7 @@ TILE_START_Y = 10
 """ The starting y coordinate of the tile map """
 
 ENVIRONMENT_LENGTH, ENVIRONMENT_WIDTH = 3.5, 3
-
+WIN_TITLE="GROMIT"
 
 # TILE_WIDTH = 20
 # """ The width of each tile in pixels """
@@ -259,21 +259,22 @@ class Window(QMainWindow):
     """Main Window."""
 
     update_rover_status = pyqtSignal(bool)
-
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
 
         self.cmd_thread = None
-        self.environment = None
+        self.environment = Environment(0,0)
         self.grid = None
         self.spike_handler = SpikeHandler()
-        self.setWindowTitle("Python Menus & Toolbars")
-        self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.central_widget = QLabel("Load an Environment: File -> Open")
-        self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.setWindowTitle(WIN_TITLE)
+        self.setMinimumSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.central_widget = QPushButton("Click to load an environment")
+        self.central_widget.clicked.connect(self.open_load_environment_dialog)
+        #self.central_widget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.setCentralWidget(self.central_widget)
-
+        self.loaded_env = False
+        self.sound_board = None
         self._build_ui()
 
     def closeEvent(self, _):  # pylint: disable=C0103
@@ -281,7 +282,10 @@ class Window(QMainWindow):
             Called when window closes
         """
         # Disconnect our spike handler
-        self.spike_handler.disconnect()
+        if self.spike_handler.connected:
+            self.spike_handler.disconnect()
+        if self.sound_board:
+            self.sound_board.close()
 
     def eventFilter(self, source, event):  # pylint: disable=C0103
         """
@@ -313,6 +317,34 @@ class Window(QMainWindow):
 
         return super().eventFilter(source, event)
 
+    def open_configure_window(self):
+        dlg = additional_windows.ConfigurationDialog()
+        dlg.exec()
+
+    def save_path_dialog(self):
+        """
+            Open interaction dialog to save a new environment path csv file
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self,
+                                                   "Save Path File", "./resources",
+                                                   "Path files (*.csv)", options=options)
+        if file_name:
+            self.environment.save_path(file_name)
+        
+    def load_path_dialog(self):
+        """
+            Open interaction dialog to open a new environment path csv file
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getOpenFileName(self,
+                                                   "Load Path File", "./resources",
+                                                   "Path files (*.csv)", options=options)
+        if file_name:
+            self.environment.load_path(file_name)
+
     def _build_ui(self):
         """
             Build the UI components
@@ -323,12 +355,16 @@ class Window(QMainWindow):
         self._max_fail_prob_edit_box = QLineEdit()
         self._setup_dock_window()
 
+
         self.new_action = QAction(self)
-        self.open_action = QAction("&Open...", self)
+        self.open_action = QAction("&Open Environment", self)
         self.open_action.triggered.connect(self.open_load_environment_dialog)
         self.load_real_motors_action = QAction("&Load Motor Logs...", self)
         self.load_real_motors_action.triggered.connect(self.load_real_motors)
-        self.save_action = QAction("&Save", self)
+        self.loadpath_action = QAction("&Load Path", self)
+        self.loadpath_action.triggered.connect(self.load_path_dialog)
+        self.save_action = QAction("&Save Path", self)
+        self.save_action.triggered.connect(self.save_path_dialog)
         self.exit_action = QAction("&Exit", self)
 
         # rover actions
@@ -342,11 +378,6 @@ class Window(QMainWindow):
         # Using a QToolBar object and a toolbar area
         help_tool_bar = QToolBar("Help", self)
         self.addToolBar(Qt.LeftToolBarArea, help_tool_bar)
-        self.font_size_spin_box = QSpinBox()
-        self.font_size_spin_box.setFocusPolicy(Qt.NoFocus)
-        label = QLabel("font size")
-        edit_tool_bar.addWidget(label)
-        edit_tool_bar.addWidget(self.font_size_spin_box)
 
         self.rover_status_label = QLabel("Rover Status: Offline")
         edit_tool_bar.addWidget(self.rover_status_label)
@@ -360,6 +391,7 @@ class Window(QMainWindow):
         file_menu.addAction(self.connect_action)
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.load_real_motors_action)
+        file_menu.addAction(self.loadpath_action)
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
         # Creating menus using a title
@@ -370,16 +402,66 @@ class Window(QMainWindow):
         self.update_rover_action = QAction("&Update Rover", self)
         self.update_rover_action.triggered.connect(self.update_rover)
         edit_menu.addAction(self.update_rover_action)
+        self.configuration_change_action = QAction("&Configure Rover", self)
+        self.configuration_change_action.triggered.connect(self.open_configure_window)
+        edit_menu.addAction(self.configuration_change_action)
+
+        self._rover_control_dock_window()
+
+    def _rover_control_dock_window(self):
+        """
+        Creates the dock window used in the GUI
+        """
+        dock_widget = QDockWidget(str("Rover Communication"), self)
+        dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
+                                    Qt.RightDockWidgetArea)
+        
+        layout = QVBoxLayout()
+
+        connect_button = QPushButton("Connect to Rover")
+        connect_button.clicked.connect(self._connect_to_rover)
+        layout.addWidget(connect_button)
+
+        log_dump_button = QPushButton("Dump Log")
+        log_dump_button.clicked.connect(self.log_dump)
+        layout.addWidget(log_dump_button)
+        
+        sound_board_button = QPushButton("Sound Board")
+        sound_board_button.clicked.connect(self._sound_board_window)
+        layout.addWidget(sound_board_button)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+
+        dock_widget.setWidget(widget)
+       # dock_widget.setGeometry(100, 0, 200, 30)
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock_widget)
+
+    def _sound_board_window(self):
+        self.sound_board = additional_windows.AnotherWindow()
+        self.sound_board.create_soundboard_ui()
+        self.sound_board.show()
+
+        pass
+        #
 
     def _setup_dock_window(self):
         """
         Creates the dock window used in the GUI
         """
-        dock_widget = QDockWidget(str("Dock Widget"), self)
+        dock_widget = QDockWidget(str("Simulation Control"), self)
         dock_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
                                     Qt.RightDockWidgetArea)
 
         layout = QVBoxLayout()
+
+        self.image_box = QLabel("No environment loaded")
+
+        if self.loaded_env:
+            pixmap = QPixmap(self.file_name)
+            self.image_box.setPixmap(pixmap)
+
+        #layout.addWidget(self.image_box)
 
         self._start_dir_edit_box.setPlaceholderText("Starting Direction Angle")
         self._start_dir_edit_box.setValidator(QIntValidator(0, 360))
@@ -405,6 +487,7 @@ class Window(QMainWindow):
 
         run_sim_button = QPushButton("Run Simulation")
         run_sim_button.clicked.connect(self.simulate_rover)
+        
         layout.addWidget(run_sim_button)
 
         widget = QWidget()
@@ -427,6 +510,8 @@ class Window(QMainWindow):
         """
             Dump rover logs
         """
+        if not self.check_for_environment_loaded():
+            return
         log = self.spike_handler.get_log()
         if log:
             
@@ -446,6 +531,9 @@ class Window(QMainWindow):
                                                    "Select Environment Image File", "./resources",
                                                    "Env Images (*env*.png)", options=options)
         if file_name:
+            self.file_name = file_name
+            
+            self.setWindowTitle(WIN_TITLE + ": " + file_name.split("/")[-1])
             self.load_environment(file_name)
 
     def add_grid(self, environment):
@@ -473,6 +561,7 @@ class Window(QMainWindow):
 
         # Load the grid UI
         self.add_grid(self.environment)
+        self.loaded_env = (True)
 
     def load_real_motors(self):
         """ Loads the physical rover's motor logs"""
@@ -512,8 +601,8 @@ class Window(QMainWindow):
         """
         msg = QMessageBox()
         msg.setIcon(icon)
-        msg.setText(title)
-        msg.setWindowTitle(text)
+        msg.setText(text)
+        msg.setWindowTitle(title)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
@@ -537,6 +626,8 @@ class Window(QMainWindow):
         """
             Execute the Rover Commands
         """
+        if not self.check_for_environment_loaded():
+            return
         # Get the rover from our environment
         rover = self.environment.get_rover()
 
@@ -589,16 +680,25 @@ class Window(QMainWindow):
             QCoreApplication.processEvents()
             self.grid.repaint()
 
+    def check_for_environment_loaded(self):
+        if not self.loaded_env:
+            print("environment not loaded")
+        
+        return self.loaded_env
+
     def simulate_rover(self):
         """
         Commences simulated trials of the rover's actions using real world information to adjust
         the path finding to be suitable for the real rover
         Uses hypothesis testing
         """
+        if not self.check_for_environment_loaded():
+            return
+        
         run_num = int(self._run_num_edit_box.text()) \
             if len(self._run_num_edit_box.text()) > 0 else 1
-
-        failure_probability = float(self._max_fail_prob_edit_box.text())
+        
+        failure_probability = float(self._max_fail_prob_edit_box.text()) if len(self._max_fail_prob_edit_box.text()) > 0 else 0.5
 
         thread = threading.Thread(target=simulate,
                                   args=(self.environment,

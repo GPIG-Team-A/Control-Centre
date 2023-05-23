@@ -3,7 +3,7 @@
 """
 import math
 import clrprint
-from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction
+from spike_com.host_files.protocol import MoveInstruction, RotateInstruction, MiningInstruction, PlaySound
 
 static = {"WHEEL_RADIUS": 4.3, "R": 1.3}#6.25/4.3}
 var = {"speed": 30}
@@ -40,6 +40,11 @@ def mine():
         Mine command
     """
     return MiningInstruction(time=0)
+
+def play(code):
+    if isinstance(code, list):
+        code = code[0]
+    return PlaySound(code)
 
 def set_variable(args):
     """

@@ -3,6 +3,7 @@ Handles the environment the rover will operate in
 """
 
 import enum
+import csv
 import numpy as np
 
 from digital_twin.rover import Rover
@@ -258,6 +259,25 @@ class Environment:
         """ Resets the current path so a new one can be generated """
         self._path = None
 
+    def save_path(self, filename):
+        """ Save path to file """
+        file = open(filename,'w')
+        csv_out = csv.writer(file)
+        p = self.get_path()
+        print(p)
+        print(type(p))
+        csv_out.writerows(p)
+        file.close()
+    
+    def load_path(self, filename):
+        """ Load path from file """
+        with open(filename, 'r') as file:
+            self.reset_path()
+            csv_in = csv.reader(file)
+            for row in csv_in:
+                self._path.append(row)
+
+
 
 def _cost(traversal_costs: list[list[float]], point_1: tuple[int], point_2: tuple[int]) \
         -> float:
@@ -268,7 +288,7 @@ def _cost(traversal_costs: list[list[float]], point_1: tuple[int], point_2: tupl
     :param point_1: The current node
     :param point_2: The node being traversed to from n1
     :return: The cost of the traversal from n1 to n2
-    """
+    """ 
     # The traversal cost between the starting node and n1
     g_val = traversal_costs[point_1[1]][point_1[0]]
 
