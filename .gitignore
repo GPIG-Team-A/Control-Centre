@@ -164,5 +164,3 @@ cython_debug/
 
 #test.json
 test.json
-
-logs/*

@@ -158,35 +158,26 @@ class MoveInstruction(Packet):
             right_motor_speed=right_motor_speed
         )
 
-class RotateInstruction(Packet):
+class RotateInstruction(MoveInstruction):
     """
         An instruction to rotate the Rover by a certain number of degrees
     """
-    CODE = 5
 
-    def __init__(self, spin_rotation, motor_speed):
+    def __init__(self, spin_rotation, motor_speed, R):
         """
         Create spin instruction
 
         Args:
             spin_rotation (int): angle turn of rover in degrees
             motor_speed (int): speed of motor
+            R = ((distance between wheel A and B)/2) / (radius of wheel)
         """
-        super().__init__(self.CODE)
-        self.spin_roation = int(spin_rotation)
-        self.motor_speed = motor_speed
-    
-    def pack(self):
-        payload = struct.pack("!hh", self.spin_roation, self.motor_speed)
-        return self._encapsulate(payload)
-
-    @staticmethod
-    def unpack(data):
-        """ Unpack RotateInstruction from raw data """
-        payload = Packet.decapsulate(data)
-        spin_rotation, motor_speed = struct.unpack("!hh", payload)
-        return RotateInstruction(spin_rotation, motor_speed)
-
+        super().__init__(
+            left_motor_degrees=spin_rotation * R,
+            left_motor_speed=motor_speed,
+            right_motor_degrees=spin_rotation * R,
+            right_motor_speed=-motor_speed
+        )
 
 class MiningInstruction(Packet):
     """
@@ -306,8 +297,6 @@ class Directions(Packet):
                 directions.add_instruction(DistanceInstruction())
             elif code == MiningInstruction.CODE:
                 directions.add_instruction(MiningInstruction.unpack(packed_instruction))
-            elif code == RotateInstruction.CODE:
-                directions.add_instruction(RotateInstruction.unpack(packed_instruction))
         return directions
 
 CODES = {
@@ -317,7 +306,6 @@ CODES = {
     3: DistanceSend,
     99: PlaySound,
     4: MiningInstruction,
-    5: RotateInstruction,
     100: Directions,
 }
 

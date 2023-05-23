@@ -3,6 +3,7 @@ Loads an environment from a file
 """
 
 from PIL import Image
+from numpy import ceil
 from digital_twin.environment import Environment, EnvType, get_environment_type_from_value
 from digital_twin.constants import METERS_PER_TILE
 
@@ -18,15 +19,15 @@ def image_to_environment(width: float, height: float, image_filename: str = "res
     :return: The environment from the image
     """
 
-    width_tiles = int((width / METERS_PER_TILE))
-    height_tiles = int((height / METERS_PER_TILE))
+    width_tiles = int(ceil(width / METERS_PER_TILE))
+    height_tiles = int(ceil(height / METERS_PER_TILE))
 
     env = Environment(width_tiles + 2, height_tiles + 2)
 
     img = Image.open(image_filename, 'r')
 
-    width_pixels_per_tile = int((img.size[0] / (width_tiles - 2)))
-    height_pixels_per_tile = int((img.size[1] / (height_tiles - 2)))
+    width_pixels_per_tile = int(ceil(img.size[0] / (width_tiles - 2)))
+    height_pixels_per_tile = int(ceil(img.size[1] / (height_tiles - 2)))
 
     start = None
     end = []
