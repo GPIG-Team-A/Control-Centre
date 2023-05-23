@@ -123,6 +123,34 @@ class Grid(QWidget):
         object_rect = QRectF(margin, margin, object_size, object_size)
         node_rect = QRectF(margin, margin, object_size / 2, object_size / 2)
 
+
+        rover = self.environment.get_rover()
+
+        adj_x = 0
+        adj_y = 0
+
+        if rover is not None:
+            rover_x, rover_y = rover.get_location()
+
+            rover_dims = constants.DISTANCE_BETWEEN_MOTORS * (self.square_size + 2) \
+                         / constants.METERS_PER_TILE
+
+            adj_x = rover_dims
+            adj_y = -rover_dims / 2
+
+            rover_map_x = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_x \
+                          + TILE_START_X - adj_x
+            rover_map_y = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_y \
+                          + TILE_START_Y - adj_y
+
+            rover_point = (rover_map_x, rover_map_y)
+
+            if rover_point not in self.rover_points and self.is_log_mode:
+                self.rover_points.append(rover_point)
+
+            rover_rect = QRectF(rover_map_x - rover_dims / 2, rover_map_y - rover_dims / 2
+                                , rover_dims, rover_dims)
+
         for y in range(int(height)):
             for x in range(int(width)):
                 # Gets the tile's position in the GUI
@@ -155,8 +183,8 @@ class Grid(QWidget):
         _, goal_pos = self.environment.get_start_end()
 
         for goal_pos_x, goal_pos_y in goal_pos:
-            goal_pos_x, goal_pos_y = TILE_START_Y + goal_pos_x * (self.square_size + 2), \
-                                     TILE_START_Y + goal_pos_y * (self.square_size + 2)
+            goal_pos_x, goal_pos_y = TILE_START_Y + goal_pos_x * (self.square_size + 2) - adj_x, \
+                                     TILE_START_Y + goal_pos_y * (self.square_size + 2) - adj_y
             painter.drawRect(object_rect.translated(goal_pos_x, goal_pos_y))
 
         path = self.environment.get_path(should_generate=False)
@@ -167,37 +195,17 @@ class Grid(QWidget):
             for i in range(len(path) - 1):
                 pos_1 = path[i]
                 pos_2 = path[i + 1]
-                x = [TILE_START_X + (pos_1[0] + 0.5) * (self.square_size + 2),
-                     TILE_START_X + (pos_2[0] + 0.5) * (self.square_size + 2)]
-                y = [TILE_START_Y + (pos_1[1] + 0.5) * (self.square_size + 2),
-                     TILE_START_Y + (pos_2[1] + 0.5) * (self.square_size + 2)]
+                x = [TILE_START_X + (pos_1[0] + 0.5) * (self.square_size + 2) - adj_x,
+                     TILE_START_X + (pos_2[0] + 0.5) * (self.square_size + 2) - adj_x]
+                y = [TILE_START_Y + (pos_1[1] + 0.5) * (self.square_size + 2) - adj_y,
+                     TILE_START_Y + (pos_2[1] + 0.5) * (self.square_size + 2) - adj_y]
                 painter.drawLine(int(x[0]), int(y[0]), int(x[1]), int(y[1]))
                 painter.drawEllipse(node_rect.translated(
                     x[0] - 0.25 * ((self.square_size + 2)), y[0] - 0.25 * ((self.square_size + 2))))
                 painter.drawEllipse(node_rect.translated(
                     x[1] - 0.25 * ((self.square_size + 2)), y[1] - 0.25 * ((self.square_size + 2))))
 
-        rover = self.environment.get_rover()
-
         if rover is not None:
-            rover_x, rover_y = rover.get_location()
-
-            rover_dims = constants.DISTANCE_BETWEEN_MOTORS * (self.square_size + 2) \
-                         / constants.METERS_PER_TILE
-
-            rover_map_x = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_x \
-                          + TILE_START_X - rover_dims
-            rover_map_y = ((self.square_size + 2) / constants.METERS_PER_TILE) * rover_y \
-                          + TILE_START_Y + rover_dims / 2
-
-            rover_point = (rover_map_x, rover_map_y)
-
-            if rover_point not in self.rover_points and self.is_log_mode:
-                self.rover_points.append(rover_point)
-
-            rover_rect = QRectF(rover_map_x - rover_dims / 2, rover_map_y - rover_dims / 2
-                                , rover_dims, rover_dims)
-
             painter.drawImage(rover_rect, get_rover_image(painter,
                                                           QImage("resources/Rover.png"), rover))
 
