@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QApplication, \
     QLabel, QMainWindow, QMenu, QFileDialog, QToolBar, QSpinBox, \
     QAction, QDockWidget, QVBoxLayout, QLineEdit, QWidget, QPushButton, QMessageBox
 from PyQt5.QtGui import QIntValidator, QPainter, QImage, QPixmap, QDoubleValidator
+from requests.exceptions import MissingSchema
 
 from digital_twin.rover import Rover
 from digital_twin.rover_simulation import simulate
@@ -429,11 +430,14 @@ class Window(QMainWindow):
         log = self.spike_handler.get_log()
         if log:
             
-            log_name = f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+            log_name = f"logs/{datetime.datetime.now().strftime('%d-%m-%Y %H%M%S')}.txt"
             with open(log_name, mode='w', encoding="UTF-8") as log_file:
                 log_file.write(log)
 
-            upload_log_file(log)
+            try:
+                upload_log_file(log)
+            except MissingSchema:
+                print("COULD NOT UPLOAD TO DISCORD")
 
     def open_load_environment_dialog(self):
         """

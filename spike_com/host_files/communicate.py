@@ -2,6 +2,8 @@
     Module to handle the raw bluetooth communication
     to a Spike
 """
+import os
+import socket
 import time
 import threading
 import serial
@@ -17,7 +19,12 @@ class CommunicationHandler:
             Create a Bluetooth connection handler
         """
         self.listeners = {}
-        self.socket = serial.Serial("/dev/rfcomm0", timeout=1)
+
+        if os.name == "nt":
+            self.socket = serial.Serial("COM4", timeout=1)
+        else:
+            self.socket = serial.Serial("/dev/rfcomm0", timeout=1)
+
         self.recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
         self.lock = threading.Lock()
 
