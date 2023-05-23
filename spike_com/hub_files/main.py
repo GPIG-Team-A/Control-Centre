@@ -262,6 +262,18 @@ async def on_new_directions(handler, directions):
                 log.log(str(e))
             log.log("Finished RotateInstruction")
         time.sleep(1)
+    
+    # Do victory dance ???
+    play_sound("/sounds/victory.raw")
+    time.sleep(1)
+    WHEEL_PAIR.start(100, -100)
+    time.sleep(2)
+    play_sound("/sounds/victory.raw")
+    WHEEL_PAIR.stop()
+    WHEEL_PAIR.start(-100, 100)
+    time.sleep(2)
+    WHEEL_PAIR.stop()
+    play_sound("/sounds/victory.raw")
 
 async def main():
     # Reset log
