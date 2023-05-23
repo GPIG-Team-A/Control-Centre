@@ -231,7 +231,7 @@ class Environment:
                 self.set_tile(pos[0], pos[1], EnvType.OBSTACLE)
                 assigned += 1
 
-    def get_path(self, width_val: float = DISTANCE_BETWEEN_MOTORS,
+    def get_path(self, width_val: float = DISTANCE_BETWEEN_MOTORS * 2,
                  should_generate: bool = True) -> list[tuple[int]]:
         """
         :param width_val: The width of the line of sight
@@ -667,7 +667,11 @@ def pathfind_multiple(environment: Environment, start: tuple[int], end_nodes: li
         cur_path = pathfind(environment, cur_node, cur_end_node, width_val)
 
         for path_node in cur_path:
-            if path_node not in full_path:
+            if len(full_path) == 0:
+                full_path.append(path_node)
+                continue
+
+            if path_node != full_path[-1]:
                 full_path.append(path_node)
 
         cur_node = cur_end_node

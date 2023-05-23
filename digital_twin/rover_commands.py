@@ -5,10 +5,13 @@ Handles the commands the rover will receive
 
 from enum import Enum
 from queue import Queue
+from typing import Any
+
 import numpy as np
 from digital_twin import constants
 from digital_twin.rover import Rover
 from digital_twin.maths_helper import get_angle_from_vectors, convert_angle_to_2d_vector
+from digital_twin.environment import Environment
 
 
 class RoverCommandType(Enum):
@@ -25,6 +28,8 @@ class RoverCommandType(Enum):
     SET_POSITION = 3
     """ Command to set the position of the rover """
     SET_ANGLE = 4
+    """ Command to mine """
+    MINE = 5
     """ 
     Command to set the angle of the rover 
     MUST BE SET AS SINGLE ELEMENT TUPLE
@@ -35,7 +40,8 @@ ROVER_TYPES: list[RoverCommandType] = [RoverCommandType.MOVE,
                                        RoverCommandType.ROTATE,
                                        RoverCommandType.RPMS,
                                        RoverCommandType.SET_POSITION,
-                                       RoverCommandType.SET_ANGLE]
+                                       RoverCommandType.SET_ANGLE,
+                                       RoverCommandType.MINE]
 
 
 class RoverCommands:
@@ -100,7 +106,7 @@ class RoverCommands:
         """
         val = value
 
-        if not isinstance(value, tuple):
+        if not isinstance(value, tuple) and command_type != RoverCommandType.ROTATE:
             val = value * constants.TIME_BETWEEN_MOVEMENTS / time
 
         self._command_queue.put((float(command_type.value), val, time))
@@ -124,14 +130,15 @@ class RoverCommands:
             command_type, value, time_units_left = self._current_command
             command_type = ROVER_TYPES[int(command_type)]
 
-            if np.isnan(value):
-                self._current_command = None
-                return
+            if isinstance(value, float):
+                if np.isnan(value):
+                    self._current_command = None
+                    return
 
             if command_type == RoverCommandType.MOVE:
                 rover.move(value)
             elif command_type == RoverCommandType.ROTATE:
-                rover.rotate(value)
+                rover.set_angle(value)
             elif command_type == RoverCommandType.RPMS:
                 motor1_speed, motor2_speed = value
                 rover.motor_move(motor1_speed, motor2_speed)
@@ -190,13 +197,71 @@ def rover_instructions_to_json(instructions: list[tuple[float]]):
             value = value * 100 # Convert to cm from m
             named_type = "MOVE"
         elif command_type == RoverCommandType.ROTATE:
-            value = -360 * value / (2 * np.pi)
+            value = 360 * (value + np.pi / 2) / (2 * np.pi)
             named_type = "ROTATE"
+        elif command_type == RoverCommandType.MINE:
+            value = 0
+            named_type = "MINE"
         to_export.append({"type":named_type, "value":value})
+
+    print(to_export)
     return to_export
 
 
-def create_rover_instructions_from_path(path: list[tuple[int]],
+def create_rover_instructions_from_logs(env: Environment, log_obj: list[dict[str, Any]]):
+    """
+    Creates the rover's instructions from the logs provided
+
+    Parameters
+    ----------
+    env
+    log_obj
+
+    Returns
+    -------
+
+    """
+    cmds = []
+
+    start_pos = env.get_start_end()[0]
+
+    start_pos = ((start_pos[0] + 0.5) * constants.METERS_PER_TILE,
+                 (start_pos[1] + 0.5) * constants.METERS_PER_TILE)
+
+    last_end_rotation = env.get_start_end_directions()[0]
+
+    cmds.append((RoverCommandType.SET_POSITION, start_pos, 0.1))
+    cmds.append((RoverCommandType.ROTATE, last_end_rotation, 0.1))
+
+    angle_adj = env.get_start_end_directions()[0]
+
+    for log_dict in log_obj:
+        if len(log_dict) == 0:
+            continue
+
+        start_rotation = log_dict["Starting Yaw"] * np.pi / 180
+        end_rotation = log_dict["Ending Yaw"] * np.pi / 180
+
+        start_rotation += angle_adj
+        end_rotation += angle_adj
+
+        cmds.append((RoverCommandType.ROTATE, start_rotation, 0.2))
+
+        last_end_rotation = end_rotation
+
+        motor_powers = log_dict["RPM Values"]
+
+        for motor1_power, motor2_power in motor_powers:
+            motor1_power = motor1_power / 100 * constants.POWER_TO_SPEED_CONVERSION
+            motor2_power = motor2_power / 100 * constants.POWER_TO_SPEED_CONVERSION
+
+            cmds.append((RoverCommandType.RPMS, (motor1_power, motor2_power), 0.1))
+
+    return cmds
+
+
+def create_rover_instructions_from_path(env: Environment,
+                                        path: list[tuple[int]],
                                         rover_direction: float = 0,
                                         rover_final_direction: float = 0)\
         -> list[tuple[float]]:
@@ -212,6 +277,9 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
     cur_pos = path[0]
 
     cmds: list[tuple[float]] = []
+
+    end_pos = env.get_start_end()[1]
+
 
     for path_x, path_y in path[1:]:
         # Gets the direction to the next node
@@ -232,20 +300,34 @@ def create_rover_instructions_from_path(path: list[tuple[int]],
 
         # If the angle is 0 then no change in direction is needed
         if d_angle != 0:
+            if new_angle > np.pi:
+                new_angle -= np.pi * 2
+
+            if new_angle < -np.pi:
+                new_angle += np.pi * 2
+
             # Adds the change direction command
-            cmds.append((RoverCommandType.ROTATE, -d_angle, 0.2))
+            cmds.append((RoverCommandType.ROTATE, new_angle, 0.2))
 
         # Gets the distance that the rover will traverse in meters
         distance = np.sqrt(dx * dx + dy * dy) * constants.METERS_PER_TILE
 
-        # The maximum speed in m/s
-        max_speed_rpm = 1
+        print(dx, dy, distance)
 
         # The time the rover will move at 'max_speed_rpm' to reach its next goal
-        time = distance / max_speed_rpm
+        time = distance / constants.ROVER_MAX_SPEED
 
         # Adds the move forward command
         cmds.append((RoverCommandType.MOVE, distance, time))
+
+        # Check for mining
+        if (path_x, path_y) in end_pos:
+            angle = -np.pi / 2
+            if end_pos.index((path_x, path_y)) == len(end_pos) - 1:
+                angle = np.pi / 2
+            cmds.append((RoverCommandType.ROTATE, angle, 0.2))
+            cmds.append((RoverCommandType.MINE, 0, 0.1))
+            cmds.append((RoverCommandType.ROTATE, new_angle, 0.2))
 
         # Updates the rovers position and angle
         cur_pos = (path_x, path_y)
