@@ -106,7 +106,7 @@ class RoverCommands:
         """
         val = value
 
-        if not isinstance(value, tuple):
+        if not isinstance(value, tuple) and command_type != RoverCommandType.ROTATE:
             val = value * constants.TIME_BETWEEN_MOVEMENTS / time
 
         self._command_queue.put((float(command_type.value), val, time))
