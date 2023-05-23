@@ -33,8 +33,9 @@ class SpikeHandler:
             self.disconnect()
 
     def run_ampy_cmd(self, cmds, check=False, universal_newlines=False):
-        arguments = []
+        return subprocess.run(self.get_ampy_args(cmds), check=check, universal_newlines=universal_newlines)
 
+    def get_ampy_args(self, cmds):
         if os.name == "nt":
             arguments = ["ampy", "--port", "COM4"]
         else:
@@ -43,7 +44,10 @@ class SpikeHandler:
         for cmd in cmds:
             arguments.append(cmd)
 
-        return subprocess.run(arguments, check=check, universal_newlines=universal_newlines)
+        return arguments
+
+    def check_ampy_cmd(self, cmds, universal_newlines=False):
+        return subprocess.check_output(self.get_ampy_args(cmds), universal_newlines=universal_newlines)
 
     def connect(self, callback_function):
         """
@@ -103,7 +107,7 @@ class SpikeHandler:
         """
         self._bind()
         try:
-            log = self.run_ampy_cmd(["get", f"{REMOTE_DIRECTORY}/log.txt"], universal_newlines=True)
+            log = self.check_ampy_cmd(["get", f"{REMOTE_DIRECTORY}/log.txt"], universal_newlines=True)
         except subprocess.CalledProcessError:
             return False
         self.disconnect()
