@@ -77,6 +77,8 @@ class SpikeHandler:
         """
         def _send_instructions():
             self.communication_handler.send_instructions(instructions)
+            time.sleep(5)
+            self.disconnect()
         thread = Thread(target=_send_instructions)
         thread.start()
     

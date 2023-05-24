@@ -23,7 +23,7 @@ import log
 LEFT_WHEEL = Motor("A")
 RIGHT_WHEEL = Motor("B", inverted=True)
 WHEEL_PAIR = MotorPair(LEFT_WHEEL, RIGHT_WHEEL)
-DISTANCE_SENSOR = Ultrasonic("D")
+DISTANCE_SENSOR = Ultrasonic("C")
 PUSH_SENSOR = PushSensor("E")
 GYROSENSOR = GyroSensor()
 LIGHT_SENSOR_BOTTOM = LightSensor("F")
@@ -58,7 +58,6 @@ def do_safe_move(instruction):
     WHEEL_PAIR.run_for_degrees(
         instruction.left_motor_degrees,
         speed=(instruction.left_motor_speed, instruction.right_motor_speed)
-        #acceleration=2000
     )
 
     time.sleep(0.1) # Allow time for the motors to start
@@ -91,7 +90,7 @@ def do_safe_move(instruction):
             play_sound("/sounds/scream.raw")
             return False
         if DISTANCE_SENSOR.get_distance() <= 10:
-            log.log("INTERRUPT: Registered object 5cm infront... stopping")
+            log.log("INTERRUPT: Registered object 15cm infront... stopping")
             WHEEL_PAIR.stop()
             play_sound("/sounds/scream.raw")
             return False
@@ -202,6 +201,9 @@ def rotate(instruction):
         current_yaw = GYROSENSOR.get_yaw()
     WHEEL_PAIR.stop()
 
+    # Fix rotation
+    WHEEL_PAIR.run_for_degrees(1, 1)
+
 
 def mine(instruction):
     """
@@ -232,17 +234,24 @@ def mine(instruction):
 
 
 async def on_new_directions(handler, directions):
+    # Reset gyro
+    hub.motion.yaw_pitch_roll(0)
+
+    interrupted = False
+    
     for instruction in directions.instructions:
         hub.sound.beep(1000)
         if isinstance(instruction, MoveInstruction):
             log.log("MoveInstruction")
             try:
-                do_safe_move(instruction)
+                interrupted = not do_safe_move(instruction)
             except Exception as e:
                 log.log(str(e))
                 hub.sound.beep(5000)
                 break
             log.log("Finished move instruction")
+            if interrupted:
+                break
         elif isinstance(instruction, DistanceInstruction):
             log.log("DistanceInstruction")
             await on_get_distance(handler, None)
@@ -263,17 +272,18 @@ async def on_new_directions(handler, directions):
             log.log("Finished RotateInstruction")
         time.sleep(1)
     
-    # Do victory dance ???
-    play_sound("/sounds/victory.raw")
-    time.sleep(1)
-    WHEEL_PAIR.start(100, -100)
-    time.sleep(2)
-    play_sound("/sounds/victory.raw")
-    WHEEL_PAIR.stop()
-    WHEEL_PAIR.start(-100, 100)
-    time.sleep(2)
-    WHEEL_PAIR.stop()
-    play_sound("/sounds/victory.raw")
+    if not interrupted:
+        # Do victory dance ???
+        play_sound("/sounds/victory.raw")
+        time.sleep(1)
+        WHEEL_PAIR.start(100, -100)
+        time.sleep(2)
+        play_sound("/sounds/victory.raw")
+        WHEEL_PAIR.stop()
+        WHEEL_PAIR.start(-100, 100)
+        time.sleep(2)
+        WHEEL_PAIR.stop()
+        play_sound("/sounds/victory.raw")
 
 async def main():
     # Reset log
